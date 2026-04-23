@@ -1,0 +1,28 @@
+From a9acc7675207d9cfaa056b7ceb6cb55f6b2f316d Mon Sep 17 00:00:00 2001
+From: Gerd Hoffmann <kraxel@redhat.com>
+Date: Thu, 23 Apr 2026 11:17:02 +0200
+Subject: [PATCH 19/19] CryptoPkg/TlsLib: downgrade security level from 3 to 2
+
+unbreak https boot.
+
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+---
+ CryptoPkg/Library/TlsLib/TlsInit.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CryptoPkg/Library/TlsLib/TlsInit.c b/CryptoPkg/Library/TlsLib/TlsInit.c
+index 96634cffcc89..0a94b2bb6dd1 100644
+--- a/CryptoPkg/Library/TlsLib/TlsInit.c
++++ b/CryptoPkg/Library/TlsLib/TlsInit.c
+@@ -188,7 +188,7 @@ TlsNew (
+   //
+   // This retains compatibility with previous version of OpenSSL.
+   //
+-  SSL_set_security_level (TlsConn->Ssl, 3);
++  SSL_set_security_level (TlsConn->Ssl, 2);
+ 
+   //
+   // Initialize the created SSL Object
+-- 
+2.53.0
+
