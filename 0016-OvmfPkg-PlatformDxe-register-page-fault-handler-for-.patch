@@ -1,7 +1,7 @@
-From 73e7e30e5bbb0c389cbbb7ea5760dddffabb4e24 Mon Sep 17 00:00:00 2001
+From 8d3842bd504d6a315cbab7eec8cdd9c02ee0e536 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Fri, 20 Jun 2025 11:52:43 +0200
-Subject: [PATCH 16/17] OvmfPkg/PlatformDxe: register page fault handler for NX
+Subject: [PATCH 16/19] OvmfPkg/PlatformDxe: register page fault handler for NX
  fixups
 
 Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
@@ -15,10 +15,10 @@ Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
  create mode 100644 OvmfPkg/PlatformDxe/PageFault.c
 
 diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.fdf b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
-index da48f67fb342..884b1d1ed8b3 100644
+index b49838490d54..3b91c152ff1c 100644
 --- a/OvmfPkg/IntelTdx/IntelTdxX64.fdf
 +++ b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
-@@ -244,6 +244,7 @@ [FV.DXEFV]
+@@ -242,6 +242,7 @@ [FV.DXEFV]
  INF OvmfPkg/TdxDxe/TdxDxe.inf
  
  INF  OvmfPkg/IoMmuDxe/IoMmuDxe.inf
@@ -26,7 +26,7 @@ index da48f67fb342..884b1d1ed8b3 100644
  
  #
  # Variable driver stack (non-SMM)
-@@ -319,7 +320,6 @@ [FV.NCCFV]
+@@ -320,7 +321,6 @@ [FV.NCCFV]
  
  INF  OvmfPkg/QemuRamfbDxe/QemuRamfbDxe.inf
  INF  OvmfPkg/VirtioGpuDxe/VirtioGpu.inf
@@ -85,19 +85,18 @@ index 4b5a2557bf04..a13ef10076fb 100644
 +  gEfiVariableWriteArchProtocolGuid AND
 +  gEfiCpuArchProtocolGuid
 diff --git a/OvmfPkg/PlatformDxe/PlatformConfig.h b/OvmfPkg/PlatformDxe/PlatformConfig.h
-index 93d06a9a6b1a..4c4c54c11032 100644
+index 9ea6e5995c60..819897f88789 100644
 --- a/OvmfPkg/PlatformDxe/PlatformConfig.h
 +++ b/OvmfPkg/PlatformDxe/PlatformConfig.h
-@@ -53,4 +53,9 @@ PlatformConfigLoad (
+@@ -51,3 +51,8 @@ PlatformConfigLoad (
+ 
  extern CHAR16  mVariableName[];
  extern CHAR16  mHiiFormName[];
- 
++
 +VOID EFIAPI
 +PageFaultInit (
 +  VOID
 +  );
-+
- #endif // _PLATFORM_CONFIG_H_
 diff --git a/OvmfPkg/PlatformDxe/PageFault.c b/OvmfPkg/PlatformDxe/PageFault.c
 new file mode 100644
 index 000000000000..50482d0c993d
@@ -488,5 +487,5 @@ index aee5a397b324..b768d544cc79 100644
    return EFI_SUCCESS;
  
 -- 
-2.53.0
+2.54.0
 
