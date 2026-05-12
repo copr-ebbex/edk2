@@ -1,7 +1,7 @@
-From 462cea8f2232dfd77d8f2450e56556dd6795b34e Mon Sep 17 00:00:00 2001
+From b830587c98c16005c0dce8b12448ef53f053a125 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Mon, 27 Nov 2023 11:04:08 +0100
-Subject: [PATCH 14/17] silence '... has a LOAD segment with RWX permissions'
+Subject: [PATCH 14/19] silence '... has a LOAD segment with RWX permissions'
  warning
 
 ---
@@ -9,18 +9,18 @@ Subject: [PATCH 14/17] silence '... has a LOAD segment with RWX permissions'
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/BaseTools/Conf/tools_def.template b/BaseTools/Conf/tools_def.template
-index 1d65eeb4c7b3..8b06dc0a9a2e 100755
+index eca4cb82d059..8565f9f48c28 100644
 --- a/BaseTools/Conf/tools_def.template
 +++ b/BaseTools/Conf/tools_def.template
-@@ -957,7 +957,7 @@ DEFINE GCC_LOONGARCH64_CC_FLAGS    = DEF(GCC_ALL_CC_FLAGS) -mabi=lp64d -fno-asyn
- DEFINE GCC_AARCH64_CC_FLAGS        = DEF(GCC_ALL_CC_FLAGS) -mlittle-endian -fno-short-enums -fverbose-asm -funsigned-char  -ffunction-sections -fdata-sections -Wno-address -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-pic -fno-pie -ffixed-x18 -mstack-protector-guard=global
- DEFINE GCC_AARCH64_CC_XIPFLAGS     = -mstrict-align -mgeneral-regs-only
- DEFINE GCC_RISCV64_CC_XIPFLAGS     = -mstrict-align -mgeneral-regs-only
--DEFINE GCC_DLINK2_FLAGS_COMMON     = -Wl,--script=$(EDK_TOOLS_PATH)/Scripts/GccBase.lds
-+DEFINE GCC_DLINK2_FLAGS_COMMON     = -Wl,--script=$(EDK_TOOLS_PATH)/Scripts/GccBase.lds -Wl,--no-warn-rwx-segments
- DEFINE GCC_LOONGARCH64_DLINK_COMMON= -Wl,--emit-relocs -nostdlib -Wl,--gc-sections -u $(IMAGE_ENTRY_POINT) -Wl,-e,$(IMAGE_ENTRY_POINT),-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map
- DEFINE GCC_AARCH64_DLINK_FLAGS     = -Wl,--emit-relocs -nostdlib -Wl,--gc-sections -u $(IMAGE_ENTRY_POINT) -Wl,-e,$(IMAGE_ENTRY_POINT),-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map -z common-page-size=0x20
- DEFINE GCC_LOONGARCH64_DLINK_FLAGS = DEF(GCC_LOONGARCH64_DLINK_COMMON) -z common-page-size=0x20
+@@ -931,7 +931,7 @@ DEFINE GCC_LOONGARCH64_CC_FLAGS        = DEF(GCC_ALL_CC_COMMON) -mabi=lp64d -fno
+ DEFINE GCC_AARCH64_CC_COMMON           = DEF(GCC_ALL_CC_COMMON) -mlittle-endian -fno-short-enums -fverbose-asm -funsigned-char  -ffunction-sections -fdata-sections -Wno-address -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-pic -fno-pie -ffixed-x18 -mstack-protector-guard=global
+ DEFINE GCC_AARCH64_CC_XIPCOMMON        = -mstrict-align -mgeneral-regs-only
+ DEFINE GCC_RISCV64_CC_XIPFLAGS         = -mstrict-align -mgeneral-regs-only
+-DEFINE GCC_DLINK2_FLAGS_COMMON         = -Wl,--script=$(EDK_TOOLS_PATH)/Scripts/GccBase.lds
++DEFINE GCC_DLINK2_FLAGS_COMMON         = -Wl,--script=$(EDK_TOOLS_PATH)/Scripts/GccBase.lds -Wl,--no-warn-rwx-segments
+ DEFINE GCC_AARCH64_DLINK_COMMON        = -Wl,--emit-relocs -nostdlib -Wl,--gc-sections -u $(IMAGE_ENTRY_POINT) -Wl,-e,$(IMAGE_ENTRY_POINT),-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map
+ DEFINE GCC_LOONGARCH64_DLINK_COMMON    = -Wl,--emit-relocs -nostdlib -Wl,--gc-sections -u $(IMAGE_ENTRY_POINT) -Wl,-e,$(IMAGE_ENTRY_POINT),-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map -z common-page-size=0x20
+ DEFINE GCC_AARCH64_ASLDLINK_COMMON     = DEF(GCC_AARCH64_DLINK_COMMON) -Wl,--entry,ReferenceAcpiTable -u $(IMAGE_ENTRY_POINT) -Wl,--defsym=PECOFF_HEADER_SIZE=0 DEF(GCC_DLINK2_FLAGS_COMMON) -z common-page-size=0x20
 -- 
-2.53.0
+2.54.0
 

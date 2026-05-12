@@ -1,7 +1,7 @@
-From 1226cc00d235423fd871e8eb97374fd0df2cc277 Mon Sep 17 00:00:00 2001
+From 1c01111c75061c462acc17410f089e2da915d98a Mon Sep 17 00:00:00 2001
 From: Laszlo Ersek <lersek@redhat.com>
 Date: Tue, 25 Feb 2014 22:40:01 +0100
-Subject: [PATCH 03/21] MdeModulePkg: TerminalDxe: set xterm resolution on mode
+Subject: [PATCH 03/19] MdeModulePkg: TerminalDxe: set xterm resolution on mode
  change (RH only)
 
 Notes about the RHEL-8.3/20200603-ca407c7246bf [edk2-stable202005] ->
@@ -87,12 +87,12 @@ Signed-off-by: Laszlo Ersek <lersek@redhat.com>
  3 files changed, 35 insertions(+)
 
 diff --git a/MdeModulePkg/MdeModulePkg.dec b/MdeModulePkg/MdeModulePkg.dec
-index 0d981111edd9..77d8aa49df28 100644
+index bdcd62b8699f..13ab41856e81 100644
 --- a/MdeModulePkg/MdeModulePkg.dec
 +++ b/MdeModulePkg/MdeModulePkg.dec
-@@ -2300,6 +2300,10 @@ [PcdsFixedAtBuild, PcdsPatchableInModule, PcdsDynamic, PcdsDynamicEx]
-   # @Prompt Conduit to use in ArmFfaLib.
-   gEfiMdeModulePkgTokenSpaceGuid.PcdFfaLibConduitSmc|TRUE|BOOLEAN|0x10000029
+@@ -2347,6 +2347,10 @@ [PcdsFixedAtBuild, PcdsPatchableInModule, PcdsDynamic, PcdsDynamicEx]
+   # @Prompt PCI CRS timeout in seconds.
+   gEfiMdeModulePkgTokenSpaceGuid.PcdPciCrsTimeoutSeconds|0|UINT32|0x1000002B
  
 +  ## Controls whether TerminalDxe outputs an XTerm resize sequence on terminal
 +  #  mode change.
@@ -176,5 +176,5 @@ index 10d6695397b9..748aee2a6009 100644
  
    Status = This->ClearScreen (This);
 -- 
-2.51.1
+2.54.0
 
