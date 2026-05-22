@@ -1,0 +1,3 @@
+annocheck:
+  ignore:
+    - /usr/share/edk2/xen/OVMF.fd
