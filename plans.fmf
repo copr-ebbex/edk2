@@ -1,0 +1,9 @@
+summary: run edk2-tests
+plan:
+  import:
+    name: /plans/full/virtual/fedora
+    url: https://gitlab.com/kraxel/edk2-tests.git
+    ref: v26.6
+context:
+  arch: x86_64
+  distro: fedora
