@@ -1,0 +1,18 @@
+# See the documentation for more information:
+# https://packit.dev/docs/configuration/
+
+# no automatic edk2 release updates (too complicated).
+# but let packit service handle builds and updates.
+
+jobs:
+  - job: koji_build
+    allowed_committers:
+      - all_admins
+      - kraxel
+    trigger: commit
+    dist_git_branches:
+      - fedora-all
+  - job: bodhi_update
+    trigger: commit
+    dist_git_branches:
+      - fedora-branched
