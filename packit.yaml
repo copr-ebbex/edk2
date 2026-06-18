@@ -9,6 +9,9 @@ jobs:
     allowed_committers:
       - all_admins
       - kraxel
+    allowed_pr_authors:
+      - all_admins
+      - kraxel
     trigger: commit
     dist_git_branches:
       - fedora-all
