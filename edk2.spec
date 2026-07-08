@@ -25,7 +25,7 @@
 
 %define OPENSSL_VER    3.5.7
 
-%define DBXDATE        20251016
+%define DBXDATE        20260630
 
 # Undefine this to get *HUGE* (50MB+) verbose build logs
 %define silent --silent
