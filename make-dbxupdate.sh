@@ -13,7 +13,7 @@ echo "# pull repo updates"
 (set -x; cd "$sbrepo"; git pull)
 commit=$(cd "$sbrepo"; git log --oneline -n 1 --pretty='format:%h' -- $dbxdir)
 latest=$(cd "$sbrepo"; git log --oneline -n 1 --pretty='format:%cs' -- $dbxdir | tr -d '-')
-version=$(cd "$sbrepo"; git describe --tags --long --match v* | cut -d- -f1)
+version=$(cd "$sbrepo"; git describe --tags --long --match 'v*' | cut -d- -f1)
 current=$(awk '/%define DBXDATE/ { print $3 }' edk2.spec)
 if test "$current" = "$latest"; then
     echo "#"
