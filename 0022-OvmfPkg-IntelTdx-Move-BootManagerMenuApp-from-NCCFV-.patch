@@ -1,0 +1,52 @@
+From ea8d18fb338abc4fe2d4d87187d0969e883cbe3a Mon Sep 17 00:00:00 2001
+From: Luigi Leonardi <leonardi@redhat.com>
+Date: Mon, 22 Jun 2026 11:09:42 +0200
+Subject: [PATCH 22/22] OvmfPkg/IntelTdx: Move BootManagerMenuApp from NCCFV to
+ DXEFV
+
+Commit 03a07cb0f5 moved both UiApp and BootManagerMenuApp to
+NCCFV to reduce the attack surface for TD guests. However,
+NCCFV is not discovered when TDX is enabled, which means
+that EfiBootManagerGetBootManagerMenu() fails
+to find the BootManagerMenuApp, triggering the assert:
+
+[Bds]BootManagerMenu FFS section can not be found, skip its boot option registration
+
+ASSERT_EFI_ERROR (Status = Not Found)
+ASSERT BdsPlatform.c(155): !(((RETURN_STATUS)(Status)) >= 0x8000000000000000ULL)
+
+that prevents any any boot option to work.
+
+Move BootManagerMenuApp back to DXEFV so the ASSERT is
+satisfied.
+
+Fixes: 03a07cb0f5 ("OvmfPkg/IntelTdx: only add UI to NCCFV")
+Signed-off-by: Luigi Leonardi <leonardi@redhat.com>
+---
+ OvmfPkg/IntelTdx/IntelTdxX64.fdf | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.fdf b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
+index 3b91c152ff1c..58d657b4a3d2 100644
+--- a/OvmfPkg/IntelTdx/IntelTdxX64.fdf
++++ b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
+@@ -262,6 +262,8 @@ [FV.DXEFV]
+   #
+ INF MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.inf
+ 
++INF  MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
++
+ ################################################################################
+ 
+ [FV.NCCFV]
+@@ -305,7 +307,6 @@ [FV.NCCFV]
+ INF  MdeModulePkg/Logo/LogoDxe.inf
+ 
+ INF  MdeModulePkg/Application/UiApp/UiApp.inf
+-INF  MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
+ 
+ #
+ # Usb Support
+-- 
+2.55.0
+
