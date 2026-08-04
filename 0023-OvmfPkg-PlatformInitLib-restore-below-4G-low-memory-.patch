@@ -1,0 +1,80 @@
+From c329ada8988685230cb1c56f8ad8baf34e8494f3 Mon Sep 17 00:00:00 2001
+From: Stanislaw Grams <stanislaw.grams@intel.com>
+Date: Fri, 3 Jul 2026 13:31:38 +0200
+Subject: [PATCH 23/23] OvmfPkg/PlatformInitLib: restore below-4G low memory
+ detection for TDVF
+
+Commit 0a0919607c ("OvmfPkg/PlatformInitLib: redefine low memory") narrowed
+PlatformGetLowMemoryCB() to consider only the first below-4G memory block
+whose base address is zero. The change was intended to fix SVSM guests,
+where SVSM caves a chunk out of below-4G RAM and OVMF must not stray into
+that hole.
+
+TDVF, however, reports its below-4G RAM through the TdHob as two adjacent
+resource descriptors:
+
+  [0, 0x800000)              EFI_RESOURCE_SYSTEM_MEMORY   (pre-accepted)
+  [0x800000, ~4G)            EFI_RESOURCE_MEMORY_UNACCEPTED
+
+PlatformScanE820Tdx() surfaces both as EfiAcpiAddressRangeMemory E820
+entries. After 0a0919607c only the first, tiny 8 MiB block is picked up,
+so PlatformInfoHob->LowMemory becomes 0x800000.
+In OvmfPkg/PlatformPei/MemDetect.c PublishPeiMemory() this drives:
+
+  LowerMemorySize = 0x00800000            // LowMemory
+  PeiMemoryCap    = 0x04F82000            // ~81 MiB
+  MemoryBase      = LowerMemorySize - PeiMemoryCap   // UINT32 underflow
+                  = 0xFB87E000
+
+Permanent PEI memory is then published at 0xFB87E000, which is not backed
+by RAM. TemporaryRamMigration()'s first CopyMem into that phantom range
+(observed as 0xFB898000 in the failing log) faults, tearing down the TD.
+
+Fold adjacent below-4G memory blocks into the low-memory span: accept an
+entry whose base equals the current LowMemory and advance LowMemory by
+its length. LowMemory starts at zero, so the first accepted block at
+address 0 still starts the sequence; non-adjacent above-4G or SVSM-carved
+blocks continue to be skipped (their base does not match LowMemory); and
+the TDVF accepted+unaccepted pair, which is contiguous, is now grouped
+correctly.
+
+Co-authored-by: Gerd Hoffmann <kraxel@redhat.com>
+Signed-off-by: Stanislaw Grams <stanislaw.grams@intel.com>
+---
+ OvmfPkg/Library/PlatformInitLib/MemDetect.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/OvmfPkg/Library/PlatformInitLib/MemDetect.c b/OvmfPkg/Library/PlatformInitLib/MemDetect.c
+index 3a2c974e087c..611cad986738 100644
+--- a/OvmfPkg/Library/PlatformInitLib/MemDetect.c
++++ b/OvmfPkg/Library/PlatformInitLib/MemDetect.c
+@@ -164,6 +164,10 @@ PlatformGetFirstNonAddressCB (
+   there are multiple memory blocks below 4G though, because SVSM caves out a
+   chunk of memory for itself.  Only the first of these blocks is considered
+   low memory.
++
++  Multiple blocks without gap inbetween are grouped together.
++  This is required for TDX which has two low memory descriptors
++  (accepted and unaccepted).
+ **/
+ STATIC
+ VOID
+@@ -176,12 +180,12 @@ PlatformGetLowMemoryCB (
+     return;
+   }
+ 
+-  if (E820Entry->BaseAddr != 0) {
++  if (E820Entry->BaseAddr != PlatformInfoHob->LowMemory) {
+     return;
+   }
+ 
+-  DEBUG ((DEBUG_INFO, "%a: LowMemory=0x%Lx\n", __func__, E820Entry->Length));
+-  PlatformInfoHob->LowMemory = (UINT32)E820Entry->Length;
++  PlatformInfoHob->LowMemory += (UINT32)E820Entry->Length;
++  DEBUG ((DEBUG_INFO, "%a: LowMemory=0x%Lx\n", __func__, PlatformInfoHob->LowMemory));
+ }
+ 
+ /**
+-- 
+2.55.0
+
