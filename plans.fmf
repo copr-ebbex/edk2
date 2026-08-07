@@ -1,7 +1,7 @@
 summary: run edk2-tests
 plan:
   import:
-    name: /plans/full/virtual/fedora
+    name: /plans/full/tf
     url: https://gitlab.com/kraxel/edk2-tests.git
     ref: v26.6
 context:
