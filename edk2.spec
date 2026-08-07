@@ -528,7 +528,7 @@ for image in \
 	pcr="${pcr%.fd}"
 	pcr="${pcr%.qcow2}"
 	pcr="${pcr}.pcrlock"
-	python3 /usr/share/doc/python3-virt-firmware/experimental/measure.py \
+	virt-fw-measure \
 		--image "$image" \
 		--version "%{name}-%{version}-%{release}" \
                 --no-shim --pcrlock \
