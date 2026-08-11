@@ -4,6 +4,3 @@ plan:
     name: /plans/full/tf
     url: https://gitlab.com/kraxel/edk2-tests.git
     ref: v26.8
-context:
-  arch: x86_64
-  distro: fedora
