@@ -1,7 +1,7 @@
-From 9be89281c7c62eedd449f1e08bd57b88f9daff58 Mon Sep 17 00:00:00 2001
+From a5e46ae06e3d66f5af25cad2b0c73bfe8b3ba688 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Thu, 12 Mar 2026 11:35:23 +0100
-Subject: [PATCH 18/18] Revert "OvmfPkg/X86QemuLoadImageLib: flip default for
+Subject: [PATCH 15/16] Revert "OvmfPkg/X86QemuLoadImageLib: flip default for
  EnableLegacyLoader to false"
 
 This reverts commit d2cbaefc082294eadaa30a3d5f0fa8ba264a574a.
@@ -11,10 +11,10 @@ This reverts commit d2cbaefc082294eadaa30a3d5f0fa8ba264a574a.
  2 files changed, 7 insertions(+), 10 deletions(-)
 
 diff --git a/OvmfPkg/Library/X86QemuLoadImageLib/X86QemuLoadImageLib.c b/OvmfPkg/Library/X86QemuLoadImageLib/X86QemuLoadImageLib.c
-index f98f8ab885b4..b16bdeb47f8c 100644
+index e888ac1a97ac..4679a7b8b12d 100644
 --- a/OvmfPkg/Library/X86QemuLoadImageLib/X86QemuLoadImageLib.c
 +++ b/OvmfPkg/Library/X86QemuLoadImageLib/X86QemuLoadImageLib.c
-@@ -449,7 +449,7 @@ QemuLoadKernelImage (
+@@ -444,7 +444,7 @@ QemuLoadKernelImage (
                      &Enabled
                      );
        if (EFI_ERROR (RetStatus)) {
@@ -24,7 +24,7 @@ index f98f8ab885b4..b16bdeb47f8c 100644
  
        if (!Enabled) {
 diff --git a/OvmfPkg/RUNTIME_CONFIG.md b/OvmfPkg/RUNTIME_CONFIG.md
-index 57d0dd96111a..b75a5dacadf5 100644
+index aad3f96d6efa..e8bea12945b8 100644
 --- a/OvmfPkg/RUNTIME_CONFIG.md
 +++ b/OvmfPkg/RUNTIME_CONFIG.md
 @@ -153,19 +153,16 @@ without EFI stub.  If you are using kernels that old secure boot
@@ -54,5 +54,5 @@ index 57d0dd96111a..b75a5dacadf5 100644
  ```
  qemu-system-x86_64 \
 -- 
-2.53.0
+2.55.0
 

@@ -1,39 +1,18 @@
-From 8d3842bd504d6a315cbab7eec8cdd9c02ee0e536 Mon Sep 17 00:00:00 2001
+From 7bc7f077acf82f9fd30648af9c1548ad3c6875c4 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Fri, 20 Jun 2025 11:52:43 +0200
-Subject: [PATCH 16/19] OvmfPkg/PlatformDxe: register page fault handler for NX
+Subject: [PATCH 13/16] OvmfPkg/PlatformDxe: register page fault handler for NX
  fixups
 
 Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
 ---
- OvmfPkg/IntelTdx/IntelTdxX64.fdf     |   2 +-
  OvmfPkg/PlatformDxe/Platform.inf     |   9 +-
  OvmfPkg/PlatformDxe/PlatformConfig.h |   5 +
  OvmfPkg/PlatformDxe/PageFault.c      | 371 +++++++++++++++++++++++++++
  OvmfPkg/PlatformDxe/Platform.c       |   1 +
- 5 files changed, 386 insertions(+), 2 deletions(-)
+ 4 files changed, 385 insertions(+), 1 deletion(-)
  create mode 100644 OvmfPkg/PlatformDxe/PageFault.c
 
-diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.fdf b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
-index b49838490d54..3b91c152ff1c 100644
---- a/OvmfPkg/IntelTdx/IntelTdxX64.fdf
-+++ b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
-@@ -242,6 +242,7 @@ [FV.DXEFV]
- INF OvmfPkg/TdxDxe/TdxDxe.inf
- 
- INF  OvmfPkg/IoMmuDxe/IoMmuDxe.inf
-+INF  OvmfPkg/PlatformDxe/Platform.inf
- 
- #
- # Variable driver stack (non-SMM)
-@@ -320,7 +321,6 @@ [FV.NCCFV]
- 
- INF  OvmfPkg/QemuRamfbDxe/QemuRamfbDxe.inf
- INF  OvmfPkg/VirtioGpuDxe/VirtioGpu.inf
--INF  OvmfPkg/PlatformDxe/Platform.inf
- 
- !include OvmfPkg/Include/Fdf/ShellDxe.fdf.inc
- !include OvmfPkg/Include/Fdf/OvmfRngDxe.fdf.inc
 diff --git a/OvmfPkg/PlatformDxe/Platform.inf b/OvmfPkg/PlatformDxe/Platform.inf
 index 4b5a2557bf04..a13ef10076fb 100644
 --- a/OvmfPkg/PlatformDxe/Platform.inf
@@ -487,5 +466,5 @@ index aee5a397b324..b768d544cc79 100644
    return EFI_SUCCESS;
  
 -- 
-2.54.0
+2.55.0
 
