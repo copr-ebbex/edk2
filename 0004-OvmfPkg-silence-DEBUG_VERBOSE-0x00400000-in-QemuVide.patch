@@ -1,7 +1,7 @@
-From 11011b3745e3afb5fb84128d81a552130e150f05 Mon Sep 17 00:00:00 2001
+From 42dadb74ca0198f532d9968fddb469d6ff8b1c7e Mon Sep 17 00:00:00 2001
 From: Paolo Bonzini <pbonzini@redhat.com>
 Date: Tue, 21 Nov 2017 00:57:46 +0100
-Subject: [PATCH 07/17] OvmfPkg: silence DEBUG_VERBOSE (0x00400000) in
+Subject: [PATCH 04/16] OvmfPkg: silence DEBUG_VERBOSE (0x00400000) in
  QemuVideoDxe/QemuRamfbDxe (RH)
 
 Notes about the RHEL-8.3/20200603-ca407c7246bf [edk2-stable202005] ->
@@ -81,10 +81,10 @@ Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
  3 files changed, 24 insertions(+), 6 deletions(-)
 
 diff --git a/OvmfPkg/AmdSev/AmdSevX64.dsc b/OvmfPkg/AmdSev/AmdSevX64.dsc
-index 0830070d479b..ac8263c83c5b 100644
+index becead88c48b..769f41783851 100644
 --- a/OvmfPkg/AmdSev/AmdSevX64.dsc
 +++ b/OvmfPkg/AmdSev/AmdSevX64.dsc
-@@ -706,8 +706,14 @@ [Components]
+@@ -715,8 +715,14 @@ [Components]
    MdeModulePkg/Universal/SetupBrowserDxe/SetupBrowserDxe.inf
    MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf
  
@@ -102,10 +102,10 @@ index 0830070d479b..ac8263c83c5b 100644
  
    #
 diff --git a/OvmfPkg/OvmfPkgIa32X64.dsc b/OvmfPkg/OvmfPkgIa32X64.dsc
-index d7b896fb8d28..071095c17c7f 100644
+index cc9e2c4a1d60..48429cd0f154 100644
 --- a/OvmfPkg/OvmfPkgIa32X64.dsc
 +++ b/OvmfPkg/OvmfPkgIa32X64.dsc
-@@ -856,8 +856,14 @@ [Components.X64]
+@@ -858,8 +858,14 @@ [Components.X64]
    MdeModulePkg/Universal/SetupBrowserDxe/SetupBrowserDxe.inf
    MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf
  
@@ -123,10 +123,10 @@ index d7b896fb8d28..071095c17c7f 100644
    OvmfPkg/VirtHstiDxe/VirtHstiDxe.inf
  
 diff --git a/OvmfPkg/OvmfPkgX64.dsc b/OvmfPkg/OvmfPkgX64.dsc
-index d4500588227b..92fd63704481 100644
+index dff5b5bceb1f..506564999bed 100644
 --- a/OvmfPkg/OvmfPkgX64.dsc
 +++ b/OvmfPkg/OvmfPkgX64.dsc
-@@ -988,8 +988,14 @@ [Components]
+@@ -993,8 +993,14 @@ [Components]
    MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf
    MdeModulePkg/Universal/Acpi/S3SaveStateDxe/S3SaveStateDxe.inf
  
@@ -144,5 +144,5 @@ index d4500588227b..92fd63704481 100644
    OvmfPkg/VirtHstiDxe/VirtHstiDxe.inf
  
 -- 
-2.53.0
+2.55.0
 

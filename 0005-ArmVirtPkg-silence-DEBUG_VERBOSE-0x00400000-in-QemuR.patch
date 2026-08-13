@@ -1,7 +1,7 @@
-From 4c47eb76965c109d7e74598f17b0b8598d9f9734 Mon Sep 17 00:00:00 2001
+From f653f94477cd6fd53d958a4609a154f539acae92 Mon Sep 17 00:00:00 2001
 From: Laszlo Ersek <lersek@redhat.com>
 Date: Wed, 27 Jan 2016 03:05:18 +0100
-Subject: [PATCH 08/21] ArmVirtPkg: silence DEBUG_VERBOSE (0x00400000) in
+Subject: [PATCH 05/16] ArmVirtPkg: silence DEBUG_VERBOSE (0x00400000) in
  QemuRamfbDxe (RH only)
 
 Notes about the RHEL-8.3/20200603-ca407c7246bf [edk2-stable202005] ->
@@ -61,10 +61,10 @@ Signed-off-by: Laszlo Ersek <lersek@redhat.com>
  2 files changed, 8 insertions(+), 2 deletions(-)
 
 diff --git a/ArmVirtPkg/ArmVirtQemu.dsc b/ArmVirtPkg/ArmVirtQemu.dsc
-index 262f6fbf8d9b..6ac186af2fd5 100644
+index 0212be4a33d2..c90c4a98bd43 100644
 --- a/ArmVirtPkg/ArmVirtQemu.dsc
 +++ b/ArmVirtPkg/ArmVirtQemu.dsc
-@@ -578,7 +578,10 @@ [Components.common]
+@@ -474,7 +474,10 @@ [Components.common]
    #
    # Video support
    #
@@ -77,10 +77,10 @@ index 262f6fbf8d9b..6ac186af2fd5 100644
    OvmfPkg/PlatformDxe/Platform.inf
  
 diff --git a/ArmVirtPkg/ArmVirtQemuKernel.dsc b/ArmVirtPkg/ArmVirtQemuKernel.dsc
-index d257ca45c51c..ef1d5a77b89b 100644
+index 7fdb3b55b97e..baa781d4a291 100644
 --- a/ArmVirtPkg/ArmVirtQemuKernel.dsc
 +++ b/ArmVirtPkg/ArmVirtQemuKernel.dsc
-@@ -462,7 +462,10 @@ [Components.common]
+@@ -360,7 +360,10 @@ [Components.common]
    #
    # Video support
    #
@@ -93,5 +93,5 @@ index d257ca45c51c..ef1d5a77b89b 100644
    OvmfPkg/PlatformDxe/Platform.inf
  
 -- 
-2.51.1
+2.55.0
 

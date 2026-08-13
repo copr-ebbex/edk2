@@ -1,7 +1,7 @@
-From 28e96c8545b949b9e039964df1e85fcb79f5706c Mon Sep 17 00:00:00 2001
+From ce2ccbe03a528cb8039f52e22c35a94c241bc17d Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Thu, 16 Jan 2025 17:20:38 +0100
-Subject: [PATCH 15/17] OvmfPkg/X64: add
+Subject: [PATCH 12/16] OvmfPkg/X64: add
  opt/org.tianocore/UninstallMemAttrProtocol support
 
 Add support for opt/org.tianocore/UninstallMemAttrProtocol, to allow
@@ -34,7 +34,7 @@ index 9675eb081f56..cc5959c370e5 100644
  [Guids]
    gEfiEndOfDxeEventGroupGuid
 diff --git a/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c b/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
-index b696f1b3389b..9fc422c00a7b 100644
+index 3edb92fabcb7..35bb9d31cc67 100644
 --- a/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
 +++ b/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
 @@ -1596,6 +1596,49 @@ SaveS3BootScript (
@@ -122,5 +122,5 @@ index b696f1b3389b..9fc422c00a7b 100644
    // Process QEMU's -kernel command line option
    //
 -- 
-2.53.0
+2.55.0
 

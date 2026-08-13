@@ -1,7 +1,7 @@
-From 02a6b4dfad798e33d549e667ccc5dfe70128ff2d Mon Sep 17 00:00:00 2001
+From 3c84a4253ee956afcf7f89651ef6635fa4aba037 Mon Sep 17 00:00:00 2001
 From: Paolo Bonzini <pbonzini@redhat.com>
 Date: Tue, 21 Nov 2017 00:57:47 +0100
-Subject: [PATCH 10/19] OvmfPkg: silence EFI_D_VERBOSE (0x00400000) in
+Subject: [PATCH 07/16] OvmfPkg: silence EFI_D_VERBOSE (0x00400000) in
  NvmExpressDxe (RH only)
 
 Notes about the RHEL-8.3/20200603-ca407c7246bf [edk2-stable202005] ->
@@ -62,7 +62,7 @@ Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
  3 files changed, 12 insertions(+), 3 deletions(-)
 
 diff --git a/OvmfPkg/AmdSev/AmdSevX64.dsc b/OvmfPkg/AmdSev/AmdSevX64.dsc
-index 971745eb80f0..d98568180f97 100644
+index 769f41783851..67473ce78a80 100644
 --- a/OvmfPkg/AmdSev/AmdSevX64.dsc
 +++ b/OvmfPkg/AmdSev/AmdSevX64.dsc
 @@ -710,7 +710,10 @@ [Components]
@@ -78,10 +78,10 @@ index 971745eb80f0..d98568180f97 100644
    MdeModulePkg/Universal/SetupBrowserDxe/SetupBrowserDxe.inf
    MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf
 diff --git a/OvmfPkg/OvmfPkgIa32X64.dsc b/OvmfPkg/OvmfPkgIa32X64.dsc
-index 197ec16a45a2..5844377e2431 100644
+index 48429cd0f154..341b12581d63 100644
 --- a/OvmfPkg/OvmfPkgIa32X64.dsc
 +++ b/OvmfPkg/OvmfPkgIa32X64.dsc
-@@ -850,7 +850,10 @@ [Components.X64]
+@@ -853,7 +853,10 @@ [Components.X64]
    MdeModulePkg/Bus/Pci/SataControllerDxe/SataControllerDxe.inf
    MdeModulePkg/Bus/Ata/AtaAtapiPassThru/AtaAtapiPassThru.inf
    MdeModulePkg/Bus/Ata/AtaBusDxe/AtaBusDxe.inf
@@ -94,10 +94,10 @@ index 197ec16a45a2..5844377e2431 100644
    MdeModulePkg/Universal/SetupBrowserDxe/SetupBrowserDxe.inf
    MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf
 diff --git a/OvmfPkg/OvmfPkgX64.dsc b/OvmfPkg/OvmfPkgX64.dsc
-index 77b7a5499285..f54299f73e6a 100644
+index 506564999bed..35faa4f5ab99 100644
 --- a/OvmfPkg/OvmfPkgX64.dsc
 +++ b/OvmfPkg/OvmfPkgX64.dsc
-@@ -983,7 +983,10 @@ [Components]
+@@ -986,7 +986,10 @@ [Components]
    MdeModulePkg/Bus/Pci/SataControllerDxe/SataControllerDxe.inf
    MdeModulePkg/Bus/Ata/AtaAtapiPassThru/AtaAtapiPassThru.inf
    MdeModulePkg/Bus/Ata/AtaBusDxe/AtaBusDxe.inf
@@ -110,5 +110,5 @@ index 77b7a5499285..f54299f73e6a 100644
    MdeModulePkg/Universal/HiiDatabaseDxe/HiiDatabaseDxe.inf
    MdeModulePkg/Universal/SetupBrowserDxe/SetupBrowserDxe.inf
 -- 
-2.54.0
+2.55.0
 
