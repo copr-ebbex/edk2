@@ -3,4 +3,4 @@ plan:
   import:
     name: /plans/full/tf
     url: https://gitlab.com/kraxel/edk2-tests.git
-    ref: v26.8
+    ref: v26.8.1
