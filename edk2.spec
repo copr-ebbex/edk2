@@ -26,6 +26,7 @@
 %define OPENSSL_VER    3.5.8
 
 %define DBXDATE_2011   20260630.2011
+%define DBXDATE_2023   20260901.2023
 
 # Undefine this to get *HUGE* (50MB+) verbose build logs
 %define silent --silent
@@ -120,7 +121,9 @@ Source83: edk2-build.rhel-9
 Source84: edk2-build.rhel-10
 
 Source90: DBXUpdate-%{DBXDATE_2011}.x64.bin
+Source91: DBXUpdate-%{DBXDATE_2023}.x64.bin
 Source92: DBXUpdate-%{DBXDATE_2011}.aa64.bin
+Source93: DBXUpdate-%{DBXDATE_2023}.aa64.bin
 
 Patch0001: 0001-BaseTools-do-not-build-BrotliCompress-RH-only.patch
 Patch0002: 0002-MdeModulePkg-remove-package-private-Brotli-include-p.patch
@@ -401,7 +404,7 @@ cp -a -- \
    %{SOURCE50} \
    %{SOURCE60} \
    %{SOURCE80} %{SOURCE81} %{SOURCE82} %{SOURCE83} %{SOURCE84} \
-   %{SOURCE90} %{SOURCE92} \
+   %{SOURCE90} %{SOURCE91} %{SOURCE92} %{SOURCE93} \
    .
 
 %build
@@ -455,19 +458,23 @@ python3 CryptoPkg/Library/OpensslLib/configure.py
 virt-fw-vars --input   %{RHELCFG}/ovmf/OVMF_VARS.fd \
              --output  %{RHELCFG}/ovmf/OVMF_VARS.secboot.fd \
              --set-dbx DBXUpdate-%{DBXDATE_2011}.x64.bin \
+             --add-dbx DBXUpdate-%{DBXDATE_2023}.x64.bin \
              --enroll-redhat --secure-boot
 virt-fw-vars --input   %{RHELCFG}/ovmf/OVMF.inteltdx.fd \
              --output  %{RHELCFG}/ovmf/OVMF.inteltdx.secboot.fd \
              --set-dbx DBXUpdate-%{DBXDATE_2011}.x64.bin \
+             --add-dbx DBXUpdate-%{DBXDATE_2023}.x64.bin \
              --enroll-redhat --secure-boot
 %if %{qemuvars}
 virt-fw-vars --output-json %{RHELCFG}/ovmf/vars.blank.json
 virt-fw-vars --output-json %{RHELCFG}/ovmf/vars.secboot.json \
              --set-dbx DBXUpdate-%{DBXDATE_2011}.x64.bin \
+             --add-dbx DBXUpdate-%{DBXDATE_2023}.x64.bin \
              --enroll-redhat --secure-boot
 %endif
 build_iso %{RHELCFG}/ovmf
 cp DBXUpdate-%{DBXDATE_2011}.x64.bin %{RHELCFG}/ovmf
+cp DBXUpdate-%{DBXDATE_2023}.x64.bin %{RHELCFG}/ovmf
 
 %else
 
@@ -476,23 +483,28 @@ cp DBXUpdate-%{DBXDATE_2011}.x64.bin %{RHELCFG}/ovmf
 virt-fw-vars --input   Fedora/ovmf/OVMF_VARS.fd \
              --output  Fedora/ovmf/OVMF_VARS.secboot.fd \
              --set-dbx DBXUpdate-%{DBXDATE_2011}.x64.bin \
+             --add-dbx DBXUpdate-%{DBXDATE_2023}.x64.bin \
              --enroll-redhat --secure-boot
 virt-fw-vars --input   Fedora/ovmf/OVMF_VARS_4M.fd \
              --output  Fedora/ovmf/OVMF_VARS_4M.secboot.fd \
              --set-dbx DBXUpdate-%{DBXDATE_2011}.x64.bin \
+             --add-dbx DBXUpdate-%{DBXDATE_2023}.x64.bin \
              --enroll-redhat --secure-boot
 virt-fw-vars --input   Fedora/ovmf/OVMF.inteltdx.fd \
              --output  Fedora/ovmf/OVMF.inteltdx.secboot.fd \
              --set-dbx DBXUpdate-%{DBXDATE_2011}.x64.bin \
+             --add-dbx DBXUpdate-%{DBXDATE_2023}.x64.bin \
              --enroll-redhat --secure-boot
 %if %{qemuvars}
 virt-fw-vars --output-json Fedora/ovmf/vars.blank.json
 virt-fw-vars --output-json Fedora/ovmf/vars.secboot.json \
              --set-dbx DBXUpdate-%{DBXDATE_2011}.x64.bin \
+             --add-dbx DBXUpdate-%{DBXDATE_2023}.x64.bin \
              --enroll-redhat --secure-boot
 %endif
 build_iso Fedora/ovmf
 cp DBXUpdate-%{DBXDATE_2011}.x64.bin Fedora/ovmf
+cp DBXUpdate-%{DBXDATE_2023}.x64.bin Fedora/ovmf
 
 igvm-wrap --input Fedora/ovmf/OVMF_CODE_4M.fd \
           --vars Fedora/ovmf/OVMF_VARS_4M.fd \
@@ -509,6 +521,7 @@ done
 virt-fw-vars --input   Fedora/ovmf/OVMF.stateless.fd \
              --output  Fedora/ovmf/OVMF.stateless.secboot.fd \
              --set-dbx DBXUpdate-%{DBXDATE_2011}.x64.bin \
+             --add-dbx DBXUpdate-%{DBXDATE_2023}.x64.bin \
              --enroll-redhat --secure-boot \
              --set-fallback-no-reboot
 
@@ -539,9 +552,11 @@ done
 virt-fw-vars --output-json %{RHELCFG}/aarch64/vars.blank.json
 virt-fw-vars --output-json %{RHELCFG}/aarch64/vars.secboot.json \
              --set-dbx DBXUpdate-%{DBXDATE_2011}.aa64.bin \
+             --add-dbx DBXUpdate-%{DBXDATE_2023}.aa64.bin \
              --enroll-redhat --secure-boot
 %endif
 cp DBXUpdate-%{DBXDATE_2011}.aa64.bin %{RHELCFG}/aarch64
+cp DBXUpdate-%{DBXDATE_2023}.aa64.bin %{RHELCFG}/aarch64
 %else
 ./edk2-build.py --config edk2-build.fedora %{?silent} --release-date "$RELEASE_DATE" -m armvirt
 ./edk2-build.py --config edk2-build.fedora.platforms %{?silent} -m aa64
@@ -553,9 +568,11 @@ virt-fw-vars --input   Fedora/aarch64/vars-template-pflash.raw \
 virt-fw-vars --output-json Fedora/aarch64/vars.blank.json
 virt-fw-vars --output-json Fedora/aarch64/vars.secboot.json \
              --set-dbx DBXUpdate-%{DBXDATE_2011}.aa64.bin \
+             --add-dbx DBXUpdate-%{DBXDATE_2023}.aa64.bin \
              --enroll-redhat --secure-boot
 %endif
 cp DBXUpdate-%{DBXDATE_2011}.aa64.bin Fedora/aarch64
+cp DBXUpdate-%{DBXDATE_2023}.aa64.bin Fedora/aarch64
 %endif
 for raw in */aarch64/*.raw; do
     qcow2="${raw%.raw}.qcow2"
