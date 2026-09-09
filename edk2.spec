@@ -562,7 +562,8 @@ cp DBXUpdate-%{DBXDATE_2023}.aa64.bin %{RHELCFG}/aarch64
 ./edk2-build.py --config edk2-build.fedora.platforms %{?silent} -m aa64
 virt-fw-vars --input   Fedora/aarch64/vars-template-pflash.raw \
              --output  Fedora/experimental/vars-template-secboot-testonly-pflash.raw \
-             --set-dbx DBXUpdate-%{DBXDATE}.aa64.bin \
+             --set-dbx DBXUpdate-%{DBXDATE_2011}.aa64.bin \
+             --add-dbx DBXUpdate-%{DBXDATE_2023}.aa64.bin \
              --enroll-redhat --secure-boot --distro-keys rhel
 %if %{qemuvars}
 virt-fw-vars --output-json Fedora/aarch64/vars.blank.json
