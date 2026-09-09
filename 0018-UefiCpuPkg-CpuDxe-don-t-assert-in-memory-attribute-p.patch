@@ -1,0 +1,75 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Erik Berg <fedora@slipsprogrammor.no>
+Date: Wed, 9 Sep 2026 21:22:00 +0200
+Subject: [PATCH] UefiCpuPkg/CpuDxe: don't assert in memory attribute protocol
+ on non-PAE IA32
+
+Windows' 32-bit boot loader (BOOTIA32.EFI) calls the EFI Memory
+Attribute Protocol with paging disabled right after loading cdboot.efi.
+CpuDxe's GetCurrentPagingContext reads CR0/CR4 live on every protocol
+call, and EfiGetMemoryAttributes had no non-PAE guard: it walked into
+GetPageTableEntry and hit ASSERT CpuPageTable.c(336) -> CpuDeadLoop.
+
+Return EFI_UNSUPPORTED from EfiGetMemoryAttributes when the live
+context is IA32 non-PAE or paging-off (Set/Clear were already guarded
+via ConvertMemoryPageAttributes), and skip installing the protocol
+entirely when the context at driver start cannot support it.
+
+Verified on qemu q35+kvm with a Windows 10 x86 ISO: unpatched firmware
+from the same tree reproduces the assert, patched firmware boots to
+the Windows Setup language dialog.
+---
+ UefiCpuPkg/CpuDxe/CpuPageTable.c | 31 ++++++++++++++++++++++++++++++-
+ 1 file changed, 30 insertions(+), 1 deletion(-)
+
+diff --git a/UefiCpuPkg/CpuDxe/CpuPageTable.c b/UefiCpuPkg/CpuDxe/CpuPageTable.c
+index 4171c247b8..0393610b9f 100644
+--- a/UefiCpuPkg/CpuDxe/CpuPageTable.c
++++ b/UefiCpuPkg/CpuDxe/CpuPageTable.c
+@@ -1667,6 +1667,17 @@ EfiGetMemoryAttributes (
+ 
+   GetCurrentPagingContext (&CurrentPagingContext);
+ 
++  //
++  // Page table walking below requires PAE format entries; without paging or
++  // with 32-bit non-PAE paging there is nothing this protocol can report.
++  //
++  if ((CurrentPagingContext.MachineType == IMAGE_FILE_MACHINE_I386) &&
++      (((CurrentPagingContext.ContextData.Ia32.Attributes & PAGE_TABLE_LIB_PAGING_CONTEXT_IA32_X64_ATTRIBUTES_PAE) == 0) ||
++       (CurrentPagingContext.ContextData.Ia32.PageTableBase == 0)))
++  {
++    return EFI_UNSUPPORTED;
++  }
++
+   do {
+     PageEntry = GetPageTableEntry (&CurrentPagingContext, BaseAddress, &PageAttr);
+     if ((PageEntry == NULL) || (PageAttr == PageNone)) {
+@@ -1730,7 +1741,25 @@ InstallEfiMemoryAttributeProtocol (
+   IN EFI_HANDLE  Handle
+   )
+ {
+-  EFI_STATUS  Status;
++  EFI_STATUS                     Status;
++  PAGE_TABLE_LIB_PAGING_CONTEXT  CurrentPagingContext;
++
++  GetCurrentPagingContext (&CurrentPagingContext);
++
++  //
++  // The protocol cannot manage page attributes when the CPU runs without
++  // paging or with 32-bit non-PAE paging (no NX support, 32-bit entries),
++  // so do not advertise it in those environments. Consumers such as the
++  // Windows boot manager treat a present-but-failing implementation as
++  // fatal, while coping fine with the protocol being absent.
++  //
++  if ((CurrentPagingContext.MachineType == IMAGE_FILE_MACHINE_I386) &&
++      (((CurrentPagingContext.ContextData.Ia32.Attributes & PAGE_TABLE_LIB_PAGING_CONTEXT_IA32_X64_ATTRIBUTES_PAE) == 0) ||
++       (CurrentPagingContext.ContextData.Ia32.PageTableBase == 0)))
++  {
++    DEBUG ((DEBUG_INFO, "%a: no PAE paging, skipping installation\n", __func__));
++    return;
++  }
+ 
+   Status = gBS->InstallMultipleProtocolInterfaces (
+                   &Handle,
+-- 
+2.51.0
