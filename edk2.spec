@@ -138,9 +138,14 @@ Patch0014: 0014-OvmfPkg-PlatformDxe-add-check-for-1g-page-support.patch
 Patch0015: 0015-Revert-OvmfPkg-X86QemuLoadImageLib-flip-default-for-.patch
 Patch0016: 0016-OvmfPkg-PlatformDxe-proper-addr-masking.patch
 # Keep ia32 alive: revert of upstream 1fb88ffe2847, maintained on the
-# `ia32` branch of a local edk2 fork (~/src/edk2), exported with
+# `ia32` branch of https://github.com/eb4x/edk2, exported with
 # `git format-patch`.
 Patch0017: 0017-Revert-OvmfPkg-Remove-OVMF-IA32.patch
+# Windows' 32-bit loader calls the EFI Memory Attribute Protocol with
+# paging disabled; return EFI_UNSUPPORTED instead of dead-looping on
+# ASSERT CpuPageTable.c(336).
+# https://github.com/eb4x/edk2/commit/e5425fb0b0
+Patch0018: 0018-UefiCpuPkg-CpuDxe-don-t-assert-in-memory-attribute-p.patch
 %if 0%{?fedora} >= 38 || 0%{?rhel} >= 10
 %endif
 
