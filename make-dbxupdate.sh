@@ -29,6 +29,7 @@ echo "#   latest  : $latest ($version)"
 
 echo "#"
 echo "# copy updates"
+cp -v "${srcdir}/x86/DBXUpdate.bin" "DBXUpdate-${latest}.ia32.bin"
 cp -v "${srcdir}/amd64/DBXUpdate.bin" "DBXUpdate-${latest}.x64.bin"
 cp -v "${srcdir}/arm64/DBXUpdate.bin" "DBXUpdate-${latest}.aa64.bin"
 

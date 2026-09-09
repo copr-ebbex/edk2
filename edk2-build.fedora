@@ -74,6 +74,12 @@ PcdUninstallMemAttrProtocol         = TRUE
 PcdDxeNxMemoryProtectionPolicy      = 0
 PcdUninstallMemAttrProtocol         = TRUE
 
+[pcds.nx.compat.ia32]
+# ia32 cannot do strict memory protection: NX may be unavailable, and the
+# DXE core's protection paths assert on it (see the OvmfPkgIa32 revert).
+PcdDxeNxMemoryProtectionPolicy      = 0
+PcdUninstallMemAttrProtocol         = TRUE
+
 
 #####################################################################
 # stateful ovmf builds (with vars in flash)
@@ -295,6 +301,36 @@ plat = LoongArchVirtQemu
 dest = Fedora/loongarch64
 cpy1 = FV/QEMU_EFI.fd
 cpy2 = FV/QEMU_VARS.fd
+
+
+#####################################################################
+# 32-bit builds
+
+[build.ovmf.ia32.default]
+desc = ovmf build (32-bit, 2MB)
+conf = OvmfPkg/OvmfPkgIa32.dsc
+arch = IA32
+opts = ovmf.common
+       ovmf.2m
+pcds = nx.compat.ia32
+plat = OvmfIa32
+dest = Fedora/ovmf-ia32
+cpy1 = FV/OVMF_CODE.fd
+cpy2 = FV/OVMF_VARS.fd
+cpy3 = IA32/Shell.efi
+
+[build.ovmf.ia32.sb.smm]
+desc = ovmf build (32-bit, 2MB, q35 only, needs smm, secure boot)
+conf = OvmfPkg/OvmfPkgIa32.dsc
+arch = IA32
+opts = ovmf.common
+       ovmf.2m
+       ovmf.sb.smm
+pcds = nx.compat.ia32
+plat = OvmfIa32
+dest = Fedora/ovmf-ia32
+cpy1 = FV/OVMF_CODE.fd OVMF_CODE.secboot.fd
+cpy2 = IA32/EnrollDefaultKeys.efi
 
 
 #####################################################################
