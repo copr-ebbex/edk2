@@ -1,0 +1,2947 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Erik Berg <fedora@slipsprogrammor.no>
+Date: Wed, 9 Sep 2026 15:43:12 +0200
+Subject: [PATCH] Revert "OvmfPkg: Remove OVMF IA32"
+
+This reverts commit 1fb88ffe284782cc79e306306b8d19829b6248b7, restoring
+the OvmfPkgIa32 platform on top of edk2-stable202608 (2970e5699ba6).
+
+Conflicts were limited to informational VALID_ARCHITECTURES comment
+blocks in various .inf files, plus OvmfPkg/build.sh; all resolved in
+favor of the pre-removal content.
+
+Post-removal drift adapted in OvmfPkgIa32.dsc:
+- PartitionDxe now consumes GptLib; map it like OvmfPkgX64.dsc does.
+- PiSmmCpuDxeSmm now consumes AmdSysCallLib; map AmdSysCallLibNull.
+- PcdCpuStackGuard=TRUE so DxeIpl builds PAE page tables: the DXE core
+  now uses the Memory Attribute protocol unconditionally, and CpuDxe
+  asserts in CpuPageTable.c when paging is disabled (the pre-2026
+  ia32 default).
+- PcdImageProtectionPolicy=0: image protection wants EFI_MEMORY_RO/XP,
+  which ia32 cannot always provide (no NX on older CPUs) and the DXE
+  core now asserts instead of tolerating Unsupported.
+---
+ OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf   |   6 +
+ .../Bhyve/AcpiPlatformDxe/AcpiPlatformDxe.inf |   2 +-
+ OvmfPkg/Bhyve/AcpiTables/AcpiTables.inf       |   2 +-
+ OvmfPkg/Bhyve/BhyveRfbDxe/BhyveRfbDxe.inf     |   2 +-
+ OvmfPkg/Bhyve/PlatformPei/MemDetect.c         |  22 +
+ .../SmbiosPlatformDxe/SmbiosPlatformDxe.inf   |   6 +
+ OvmfPkg/CpuS3DataDxe/CpuS3DataDxe.inf         |   2 +-
+ OvmfPkg/Include/IndustryStandard/QemuFwCfg.h  |   3 +-
+ OvmfPkg/Include/IndustryStandard/Xen/README   |   4 +-
+ .../IndustryStandard/Xen/arch-x86/xen.h       |   7 +-
+ .../Include/IndustryStandard/Xen/hvm/params.h |   2 +-
+ .../Include/IndustryStandard/Xen/io/blkif.h   |  14 +
+ .../IndustryStandard/Xen/io/protocols.h       |   5 +-
+ OvmfPkg/Include/IndustryStandard/Xen/xen.h    |   2 +-
+ .../DxeMemEncryptSevLib.inf                   |   7 +-
+ .../DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf |   2 +-
+ .../EmuVariableFvbLib/EmuVariableFvbLib.inf   |   2 +-
+ .../LoadLinuxLib/Ia32/JumpToKernel.nasm       |  43 +
+ OvmfPkg/Library/LoadLinuxLib/Linux.c          |  16 +-
+ OvmfPkg/Library/LoadLinuxLib/LoadLinuxLib.inf |   9 +-
+ .../LoadLinuxLib/{ => X64}/JumpToKernel.nasm  |   0
+ OvmfPkg/Library/NestedInterruptTplLib/Iret.c  |  16 +
+ .../Library/NvVarsFileLib/NvVarsFileLib.inf   |   2 +-
+ .../PciHostBridgeLib/PciHostBridgeLib.inf     |   2 +-
+ .../PciHostBridgeLibScan.inf                  |   2 +-
+ .../PciHostBridgeUtilityLib.inf               |   7 +
+ .../PlatformBootManagerLib.inf                |   4 +-
+ .../PlatformBootManagerLibBhyve.inf           |   4 +-
+ .../PlatformDebugLibIoPort.inf                |   2 +-
+ .../PlatformFvbLibNull/PlatformFvbLibNull.inf |   2 +-
+ .../PlatformSecureLib/PlatformSecureLib.inf   |   2 +-
+ .../QemuBootOrderLib/QemuBootOrderLib.inf     |   7 +
+ .../Library/QemuFwCfgLib/QemuFwCfgDxeLib.inf  |   2 +-
+ .../QemuFwCfgS3Lib/DxeQemuFwCfgS3LibFwCfg.inf |   7 +
+ .../ResetSystemLib/DxeResetSystemLib.inf      |   2 +-
+ .../DxeResetSystemLibMicrovm.inf              |   2 +-
+ .../ResetSystemLib/DxeResetSystemLibXen.inf   |   2 +-
+ .../DetectSmbiosVersionLib.inf                |   7 +
+ .../SmmCpuPlatformHookLibQemu.inf             |   2 +-
+ .../DxeTcg2PhysicalPresenceLib.inf            |   2 +-
+ .../TlsAuthConfigLib/TlsAuthConfigLib.inf     |   2 +-
+ .../X86QemuLoadImageLib/X86QemuLoadImageLib.c |  37 +-
+ .../XenHypercallLib/Ia32/hypercall.nasm       |  48 +
+ .../XenHypercallLib/XenHypercallLib.inf       |  14 +-
+ .../LinuxInitrdDynamicShellCommand.inf        |   4 +
+ OvmfPkg/OvmfPkgIa32.dsc                       | 940 ++++++++++++++++++
+ OvmfPkg/OvmfPkgIa32.fdf                       | 494 +++++++++
+ .../PlatformCI/.azurepipelines/Ubuntu-GCC.yml |  22 +
+ .../PlatformCI/.azurepipelines/Windows-VS.yml |  22 +
+ OvmfPkg/PlatformCI/PlatformBuild.py           |   6 +-
+ OvmfPkg/PlatformCI/PlatformBuildLib.py        |   6 +-
+ OvmfPkg/PlatformCI/ReadMe.md                  |   7 +
+ OvmfPkg/PlatformPei/MemDetect.c               |  22 +
+ .../FvbServicesRuntimeDxe.inf                 |   2 +-
+ .../FvbServicesSmm.inf                        |   2 +-
+ .../FvbServicesStandaloneMm.inf               |   2 +-
+ OvmfPkg/QemuVideoDxe/QemuVideoDxe.inf         |   2 +-
+ OvmfPkg/README                                |  13 +-
+ .../Library/FmpDeviceLib/FmpDeviceLib.inf     |   6 +
+ OvmfPkg/SioBusDxe/SioBusDxe.inf               |   2 +-
+ .../SmbiosPlatformDxe/SmbiosPlatformDxe.inf   |   6 +
+ .../XenSmbiosPlatformDxe.inf                  |  10 +-
+ OvmfPkg/SmmAccess/SmmAccess2Dxe.inf           |   2 +-
+ OvmfPkg/SmmControl2Dxe/SmmControl2Dxe.inf     |   2 +-
+ .../XenAcpiPlatformDxe/XenAcpiPlatformDxe.inf |   2 +-
+ OvmfPkg/XenPlatformPei/MemDetect.c            |  10 +
+ OvmfPkg/build.sh                              |  43 +-
+ 67 files changed, 1891 insertions(+), 71 deletions(-)
+ create mode 100644 OvmfPkg/Library/LoadLinuxLib/Ia32/JumpToKernel.nasm
+ rename OvmfPkg/Library/LoadLinuxLib/{ => X64}/JumpToKernel.nasm (100%)
+ create mode 100644 OvmfPkg/Library/XenHypercallLib/Ia32/hypercall.nasm
+ create mode 100644 OvmfPkg/OvmfPkgIa32.dsc
+ create mode 100644 OvmfPkg/OvmfPkgIa32.fdf
+
+diff --git a/OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf b/OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf
+index d770c071cf..622589e607 100644
+--- a/OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf
++++ b/OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf
+@@ -14,6 +14,12 @@
+   VERSION_STRING                 = 1.0
+   ENTRY_POINT                    = AcpiPlatformEntryPoint
+ 
++#
++# The following information is for reference only and not required by the build tools.
++#
++#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64
++#
++
+ [Sources]
+   AcpiPlatform.c
+   AcpiPlatform.h
+diff --git a/OvmfPkg/Bhyve/AcpiPlatformDxe/AcpiPlatformDxe.inf b/OvmfPkg/Bhyve/AcpiPlatformDxe/AcpiPlatformDxe.inf
+index b82a61a25a..2e228d815b 100644
+--- a/OvmfPkg/Bhyve/AcpiPlatformDxe/AcpiPlatformDxe.inf
++++ b/OvmfPkg/Bhyve/AcpiPlatformDxe/AcpiPlatformDxe.inf
+@@ -18,7 +18,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Bhyve/AcpiTables/AcpiTables.inf b/OvmfPkg/Bhyve/AcpiTables/AcpiTables.inf
+index c33b17afa4..f422793f49 100644
+--- a/OvmfPkg/Bhyve/AcpiTables/AcpiTables.inf
++++ b/OvmfPkg/Bhyve/AcpiTables/AcpiTables.inf
+@@ -21,7 +21,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Bhyve/BhyveRfbDxe/BhyveRfbDxe.inf b/OvmfPkg/Bhyve/BhyveRfbDxe/BhyveRfbDxe.inf
+index 49ccec13b0..d4016605f3 100644
+--- a/OvmfPkg/Bhyve/BhyveRfbDxe/BhyveRfbDxe.inf
++++ b/OvmfPkg/Bhyve/BhyveRfbDxe/BhyveRfbDxe.inf
+@@ -21,7 +21,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ #  DRIVER_BINDING                =  gEmuGopDriverBinding
+ #  COMPONENT_NAME                =  gEmuGopComponentName
+diff --git a/OvmfPkg/Bhyve/PlatformPei/MemDetect.c b/OvmfPkg/Bhyve/PlatformPei/MemDetect.c
+index fd7558a461..351862942d 100644
+--- a/OvmfPkg/Bhyve/PlatformPei/MemDetect.c
++++ b/OvmfPkg/Bhyve/PlatformPei/MemDetect.c
+@@ -162,6 +162,18 @@ GetFirstNonAddress (
+ 
+   FirstNonAddress = BASE_4GB + GetSystemMemorySizeAbove4gb ();
+ 
++  //
++  // If DXE is 32-bit, then we're done; PciBusDxe will degrade 64-bit MMIO
++  // resources to 32-bit anyway. See DegradeResource() in
++  // "PciResourceSupport.c".
++  //
++ #ifdef MDE_CPU_IA32
++  if (!FeaturePcdGet (PcdDxeIplSwitchToLongMode)) {
++    return FirstNonAddress;
++  }
++
++ #endif
++
+   //
+   // Otherwise, in order to calculate the highest address plus one, we must
+   // consider the 64-bit PCI host aperture too. Fetch the default size.
+@@ -285,6 +297,16 @@ GetPeiMemoryCap (
+   UINT32   PdpEntries;
+   UINTN    TotalPages;
+ 
++  //
++  // If DXE is 32-bit, then just return the traditional 64 MB cap.
++  //
++ #ifdef MDE_CPU_IA32
++  if (!FeaturePcdGet (PcdDxeIplSwitchToLongMode)) {
++    return SIZE_64MB;
++  }
++
++ #endif
++
+   //
+   // Dependent on physical address width, PEI memory allocations can be
+   // dominated by the page tables built for 64-bit DXE. So we key the cap off
+diff --git a/OvmfPkg/Bhyve/SmbiosPlatformDxe/SmbiosPlatformDxe.inf b/OvmfPkg/Bhyve/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
+index f9dff152aa..12deae7825 100644
+--- a/OvmfPkg/Bhyve/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
++++ b/OvmfPkg/Bhyve/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
+@@ -18,6 +18,12 @@
+ 
+   ENTRY_POINT                    = SmbiosTablePublishEntry
+ 
++#
++# The following information is for reference only and not required by the build tools.
++#
++#  VALID_ARCHITECTURES           = IA32 X64 EBC ARM AARCH64
++#
++
+ [Sources]
+   Bhyve.c
+   SmbiosPlatformDxe.h
+diff --git a/OvmfPkg/CpuS3DataDxe/CpuS3DataDxe.inf b/OvmfPkg/CpuS3DataDxe/CpuS3DataDxe.inf
+index 5240db6e03..5369613f5d 100644
+--- a/OvmfPkg/CpuS3DataDxe/CpuS3DataDxe.inf
++++ b/OvmfPkg/CpuS3DataDxe/CpuS3DataDxe.inf
+@@ -27,7 +27,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ 
+ [Sources]
+   CpuS3Data.c
+diff --git a/OvmfPkg/Include/IndustryStandard/QemuFwCfg.h b/OvmfPkg/Include/IndustryStandard/QemuFwCfg.h
+index d564dcf0da..ea88dc949c 100644
+--- a/OvmfPkg/Include/IndustryStandard/QemuFwCfg.h
++++ b/OvmfPkg/Include/IndustryStandard/QemuFwCfg.h
+@@ -36,7 +36,8 @@
+ #define FW_CFG_DMA_CTL_WRITE   BIT4
+ 
+ //
+-// The fw_cfg registers can be found at these IO Ports
++// The fw_cfg registers can be found at these IO Ports, on the IO-mapped
++// platforms (Ia32 and X64).
+ //
+ #define FW_CFG_IO_SELECTOR     0x510
+ #define FW_CFG_IO_DATA         0x511
+diff --git a/OvmfPkg/Include/IndustryStandard/Xen/README b/OvmfPkg/Include/IndustryStandard/Xen/README
+index 9f1ca62663..8cb7f715b7 100644
+--- a/OvmfPkg/Include/IndustryStandard/Xen/README
++++ b/OvmfPkg/Include/IndustryStandard/Xen/README
+@@ -3,7 +3,8 @@ modification that are described in this README.
+ 
+ The modifications that needed to be done are:
+ - Use of ZeroMem() or SetMem() instead of memset().
+-- Drop any i386 references as OVMF Xen support is only for x64.
++- If a struct is using a 64bit field, then a #pragma(4) might be needed
++  for IA32, like in io/blkif.h.
+ - Replace the types with the ones used in UEFI.
+ 
+ 
+@@ -32,4 +33,5 @@ s/([^a-zA-Z0-9_]|^)char([^a-zA-Z0-9_]|$)/\1CHAR8\2/g
+ s/([^a-zA-Z0-9_]|^)unsigned long([^a-zA-Z0-9_]|$)/\1UINTN\2/g
+ s/([^a-zA-Z0-9_]|^)long([^a-zA-Z0-9_]|$)/\1INTN\2/g
+ 
++s/__i386__/MDE_CPU_IA32/g
+ s/__x86_64__/MDE_CPU_X64/g
+diff --git a/OvmfPkg/Include/IndustryStandard/Xen/arch-x86/xen.h b/OvmfPkg/Include/IndustryStandard/Xen/arch-x86/xen.h
+index 87227cd728..ecf2047ee8 100644
+--- a/OvmfPkg/Include/IndustryStandard/Xen/arch-x86/xen.h
++++ b/OvmfPkg/Include/IndustryStandard/Xen/arch-x86/xen.h
+@@ -43,7 +43,9 @@
+   #endif
+ #define set_xen_guest_handle(hnd, val)  set_xen_guest_handle_raw(hnd, val)
+ 
+-  #if defined (MDE_CPU_X64)
++  #if defined (MDE_CPU_IA32)
++    #include "xen-x86_32.h"
++  #elif defined (MDE_CPU_X64)
+     #include "xen-x86_64.h"
+   #endif
+ 
+@@ -64,6 +66,9 @@ typedef UINTN xen_ulong_t;
+ 
+ typedef UINT64 tsc_timestamp_t; /* RDTSC timestamp */
+ 
++    #ifdef MDE_CPU_IA32
++      #pragma pack(4)
++    #endif
+ struct arch_shared_info {
+   UINTN        max_pfn;             /* max pfn that appears in table */
+   /* Frame containing list of mfns containing list of mfns containing p2m. */
+diff --git a/OvmfPkg/Include/IndustryStandard/Xen/hvm/params.h b/OvmfPkg/Include/IndustryStandard/Xen/hvm/params.h
+index cdac741b69..19c75468fc 100644
+--- a/OvmfPkg/Include/IndustryStandard/Xen/hvm/params.h
++++ b/OvmfPkg/Include/IndustryStandard/Xen/hvm/params.h
+@@ -38,7 +38,7 @@
+ #define HVM_PARAM_BUFIOREQ_PFN     6
+ #define HVM_PARAM_BUFIOREQ_EVTCHN  26
+ 
+-#if defined (MDE_CPU_X64)
++#if defined (MDE_CPU_IA32) || defined (MDE_CPU_X64)
+ 
+ /* Expose Viridian interfaces to this HVM guest? */
+ #define HVM_PARAM_VIRIDIAN  9
+diff --git a/OvmfPkg/Include/IndustryStandard/Xen/io/blkif.h b/OvmfPkg/Include/IndustryStandard/Xen/io/blkif.h
+index 80aae96c34..d97a6aad40 100644
+--- a/OvmfPkg/Include/IndustryStandard/Xen/io/blkif.h
++++ b/OvmfPkg/Include/IndustryStandard/Xen/io/blkif.h
+@@ -657,6 +657,14 @@ struct blkif_request_segment {
+  * 'sector-size' xenstore node.  Note however that the offset in
+  * 'sector_number' must be aligned to 'sector-size'.
+  */
++#if defined (MDE_CPU_IA32)
++//
++// pack(4) is necessary when these structs are compiled for Ia32.
++// Without it, the struct will have a different alignment than the one
++// a backend expect for a 32bit guest.
++//
++  #pragma pack(4)
++#endif
+ struct blkif_request {
+   UINT8                           operation;     /* BLKIF_OP_???                         */
+   UINT8                           nr_segments;   /* number of segments                   */
+@@ -701,6 +709,9 @@ struct blkif_request_indirect {
+   blkif_sector_t    sector_number; /* start sector idx on disk (r/w only)  */
+   blkif_vdev_t      handle;        /* same as for read/write requests      */
+   grant_ref_t       indirect_grefs[BLKIF_MAX_INDIRECT_PAGES_PER_REQUEST];
++ #ifdef MDE_CPU_IA32
++  UINT64            pad;       /* Make it 64 byte aligned on i386      */
++ #endif
+ };
+ 
+ typedef struct blkif_request_indirect blkif_request_indirect_t;
+@@ -712,6 +723,9 @@ struct blkif_response {
+ };
+ 
+ typedef struct blkif_response blkif_response_t;
++#if defined (MDE_CPU_IA32)
++  #pragma pack()
++#endif
+ 
+ /*
+  * STATUS RETURN CODES.
+diff --git a/OvmfPkg/Include/IndustryStandard/Xen/io/protocols.h b/OvmfPkg/Include/IndustryStandard/Xen/io/protocols.h
+index ead4c90a07..4ea3b42b98 100644
+--- a/OvmfPkg/Include/IndustryStandard/Xen/io/protocols.h
++++ b/OvmfPkg/Include/IndustryStandard/Xen/io/protocols.h
+@@ -7,10 +7,13 @@
+ #ifndef __XEN_PROTOCOLS_H__
+ #define __XEN_PROTOCOLS_H__
+ 
++#define XEN_IO_PROTO_ABI_X86_32  "x86_32-abi"
+ #define XEN_IO_PROTO_ABI_X86_64  "x86_64-abi"
+ #define XEN_IO_PROTO_ABI_ARM     "arm-abi"
+ 
+-#if defined (MDE_CPU_X64)
++#if defined (MDE_CPU_IA32)
++#define XEN_IO_PROTO_ABI_NATIVE  XEN_IO_PROTO_ABI_X86_32
++#elif defined (MDE_CPU_X64)
+ #define XEN_IO_PROTO_ABI_NATIVE  XEN_IO_PROTO_ABI_X86_64
+ #elif defined (__arm__) || defined (__aarch64__)
+ #define XEN_IO_PROTO_ABI_NATIVE  XEN_IO_PROTO_ABI_ARM
+diff --git a/OvmfPkg/Include/IndustryStandard/Xen/xen.h b/OvmfPkg/Include/IndustryStandard/Xen/xen.h
+index 7891ccc024..d91a1b5f42 100644
+--- a/OvmfPkg/Include/IndustryStandard/Xen/xen.h
++++ b/OvmfPkg/Include/IndustryStandard/Xen/xen.h
+@@ -18,7 +18,7 @@
+ 
+ #include "xen-compat.h"
+ 
+-#if defined (MDE_CPU_X64)
++#if defined (MDE_CPU_IA32) || defined (MDE_CPU_X64)
+   #include "arch-x86/xen.h"
+ #elif defined (__aarch64__)
+   #include "arch-arm/xen.h"
+diff --git a/OvmfPkg/Library/BaseMemEncryptSevLib/DxeMemEncryptSevLib.inf b/OvmfPkg/Library/BaseMemEncryptSevLib/DxeMemEncryptSevLib.inf
+index 88067081dd..312ee73e54 100644
+--- a/OvmfPkg/Library/BaseMemEncryptSevLib/DxeMemEncryptSevLib.inf
++++ b/OvmfPkg/Library/BaseMemEncryptSevLib/DxeMemEncryptSevLib.inf
+@@ -20,7 +20,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-# VALID_ARCHITECTURES           = X64
++# VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Packages]
+@@ -32,6 +32,8 @@
+ [Sources]
+   DxeMemEncryptSevLibInternal.c
+   PeiDxeMemEncryptSevLibInternal.c
++
++[Sources.X64]
+   X64/DxeSnpSystemRamValidate.c
+   X64/MemEncryptSevLib.c
+   X64/PeiDxeVirtualMemory.c
+@@ -39,6 +41,9 @@
+   X64/VirtualMemory.c
+   X64/VirtualMemory.h
+ 
++[Sources.IA32]
++  Ia32/MemEncryptSevLib.c
++
+ [LibraryClasses]
+   BaseLib
+   CacheMaintenanceLib
+diff --git a/OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf b/OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf
+index d13f3925f3..4a8c0bac23 100644
+--- a/OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf
++++ b/OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf
+@@ -22,7 +22,7 @@
+   LIBRARY_CLASS                  = PciLib|DXE_DRIVER DXE_RUNTIME_DRIVER SMM_CORE DXE_SMM_DRIVER UEFI_DRIVER UEFI_APPLICATION
+   CONSTRUCTOR                    = InitializeConfigAccessMethod
+ 
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ 
+ [Sources]
+   PciLib.c
+diff --git a/OvmfPkg/Library/EmuVariableFvbLib/EmuVariableFvbLib.inf b/OvmfPkg/Library/EmuVariableFvbLib/EmuVariableFvbLib.inf
+index fc7454d1f5..4eb0f506ea 100644
+--- a/OvmfPkg/Library/EmuVariableFvbLib/EmuVariableFvbLib.inf
++++ b/OvmfPkg/Library/EmuVariableFvbLib/EmuVariableFvbLib.inf
+@@ -21,7 +21,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/LoadLinuxLib/Ia32/JumpToKernel.nasm b/OvmfPkg/Library/LoadLinuxLib/Ia32/JumpToKernel.nasm
+new file mode 100644
+index 0000000000..ae5f5eb03e
+--- /dev/null
++++ b/OvmfPkg/Library/LoadLinuxLib/Ia32/JumpToKernel.nasm
+@@ -0,0 +1,43 @@
++;------------------------------------------------------------------------------
++;
++; Copyright (c) 2006 - 2013, Intel Corporation. All rights reserved.<BR>
++;
++; SPDX-License-Identifier: BSD-2-Clause-Patent
++;
++;------------------------------------------------------------------------------
++
++  SECTION .text
++
++;------------------------------------------------------------------------------
++; VOID
++; EFIAPI
++; JumpToKernel (
++;   VOID *KernelStart,
++;   VOID *KernelBootParams
++;   );
++;------------------------------------------------------------------------------
++global ASM_PFX(JumpToKernel)
++ASM_PFX(JumpToKernel):
++
++    mov     esi, [esp + 8]
++    call    DWORD [esp + 4]
++    ret
++
++;------------------------------------------------------------------------------
++; VOID
++; EFIAPI
++; JumpToUefiKernel (
++;   EFI_HANDLE ImageHandle,
++;   EFI_SYSTEM_TABLE *SystemTable,
++;   VOID *KernelBootParams,
++;   VOID *KernelStart
++;   );
++;------------------------------------------------------------------------------
++global ASM_PFX(JumpToUefiKernel)
++ASM_PFX(JumpToUefiKernel):
++
++    mov     eax, [esp + 12]
++    mov     eax, [eax + 0x264]
++    add     eax, [esp + 16]
++    jmp     eax
++
+diff --git a/OvmfPkg/Library/LoadLinuxLib/Linux.c b/OvmfPkg/Library/LoadLinuxLib/Linux.c
+index 0e95c26837..0bc8e156d7 100644
+--- a/OvmfPkg/Library/LoadLinuxLib/Linux.c
++++ b/OvmfPkg/Library/LoadLinuxLib/Linux.c
+@@ -370,15 +370,19 @@ SetupLinuxMemmap (
+ 
+   Bp->e820_entries = (UINT8)E820EntryCount;
+ 
+-  Efi                       = &Bp->efi_info;
+-  Efi->efi_systab           = (UINT32)(UINTN)gST;
+-  Efi->efi_memdesc_size     = (UINT32)DescriptorSize;
+-  Efi->efi_memdesc_version  = DescriptorVersion;
+-  Efi->efi_memmap           = (UINT32)(UINTN)MemoryMapPtr;
+-  Efi->efi_memmap_size      = (UINT32)MemoryMapSize;
++  Efi                      = &Bp->efi_info;
++  Efi->efi_systab          = (UINT32)(UINTN)gST;
++  Efi->efi_memdesc_size    = (UINT32)DescriptorSize;
++  Efi->efi_memdesc_version = DescriptorVersion;
++  Efi->efi_memmap          = (UINT32)(UINTN)MemoryMapPtr;
++  Efi->efi_memmap_size     = (UINT32)MemoryMapSize;
++ #ifdef MDE_CPU_IA32
++  Efi->efi_loader_signature = SIGNATURE_32 ('E', 'L', '3', '2');
++ #else
+   Efi->efi_systab_hi        = (UINT32)(((UINT64)(UINTN)gST) >> 32);
+   Efi->efi_memmap_hi        = (UINT32)(((UINT64)(UINTN)MemoryMapPtr) >> 32);
+   Efi->efi_loader_signature = SIGNATURE_32 ('E', 'L', '6', '4');
++ #endif
+ 
+   gBS->ExitBootServices (gImageHandle, MapKey);
+ }
+diff --git a/OvmfPkg/Library/LoadLinuxLib/LoadLinuxLib.inf b/OvmfPkg/Library/LoadLinuxLib/LoadLinuxLib.inf
+index 5a457b31c4..cc643373ea 100644
+--- a/OvmfPkg/Library/LoadLinuxLib/LoadLinuxLib.inf
++++ b/OvmfPkg/Library/LoadLinuxLib/LoadLinuxLib.inf
+@@ -17,14 +17,19 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Sources.common]
+   Linux.c
+   LinuxGdt.c
+   LoadLinuxLib.h
+-  JumpToKernel.nasm
++
++[Sources.IA32]
++  Ia32/JumpToKernel.nasm
++
++[Sources.X64]
++  X64/JumpToKernel.nasm
+ 
+ [Packages]
+   MdePkg/MdePkg.dec
+diff --git a/OvmfPkg/Library/LoadLinuxLib/JumpToKernel.nasm b/OvmfPkg/Library/LoadLinuxLib/X64/JumpToKernel.nasm
+similarity index 100%
+rename from OvmfPkg/Library/LoadLinuxLib/JumpToKernel.nasm
+rename to OvmfPkg/Library/LoadLinuxLib/X64/JumpToKernel.nasm
+diff --git a/OvmfPkg/Library/NestedInterruptTplLib/Iret.c b/OvmfPkg/Library/NestedInterruptTplLib/Iret.c
+index 4ab274d69b..f6b2c51b6c 100644
+--- a/OvmfPkg/Library/NestedInterruptTplLib/Iret.c
++++ b/OvmfPkg/Library/NestedInterruptTplLib/Iret.c
+@@ -38,6 +38,22 @@ DisableInterruptsOnIret (
+   Rflags.Bits.IF                         = 0;
+   SystemContext.SystemContextX64->Rflags = Rflags.UintN;
+ 
++ #elif defined (MDE_CPU_IA32)
++
++  IA32_EFLAGS32  Eflags;
++
++  //
++  // Get flags from system context.
++  //
++  Eflags.UintN = SystemContext.SystemContextIa32->Eflags;
++  ASSERT (Eflags.Bits.IF);
++
++  //
++  // Clear interrupts-enabled flag.
++  //
++  Eflags.Bits.IF                          = 0;
++  SystemContext.SystemContextIa32->Eflags = Eflags.UintN;
++
+  #else
+ 
+   #error "Unsupported CPU"
+diff --git a/OvmfPkg/Library/NvVarsFileLib/NvVarsFileLib.inf b/OvmfPkg/Library/NvVarsFileLib/NvVarsFileLib.inf
+index 6508a67850..9ae40ffe43 100644
+--- a/OvmfPkg/Library/NvVarsFileLib/NvVarsFileLib.inf
++++ b/OvmfPkg/Library/NvVarsFileLib/NvVarsFileLib.inf
+@@ -22,7 +22,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/PciHostBridgeLib/PciHostBridgeLib.inf b/OvmfPkg/Library/PciHostBridgeLib/PciHostBridgeLib.inf
+index 228c08c6ce..f9f1825574 100644
+--- a/OvmfPkg/Library/PciHostBridgeLib/PciHostBridgeLib.inf
++++ b/OvmfPkg/Library/PciHostBridgeLib/PciHostBridgeLib.inf
+@@ -21,7 +21,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/PciHostBridgeLibScan/PciHostBridgeLibScan.inf b/OvmfPkg/Library/PciHostBridgeLibScan/PciHostBridgeLibScan.inf
+index 1a7a2462b4..a2ac5f93d1 100644
+--- a/OvmfPkg/Library/PciHostBridgeLibScan/PciHostBridgeLibScan.inf
++++ b/OvmfPkg/Library/PciHostBridgeLibScan/PciHostBridgeLibScan.inf
+@@ -21,7 +21,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/PciHostBridgeUtilityLib/PciHostBridgeUtilityLib.inf b/OvmfPkg/Library/PciHostBridgeUtilityLib/PciHostBridgeUtilityLib.inf
+index 83287e2099..e4fc903121 100644
+--- a/OvmfPkg/Library/PciHostBridgeUtilityLib/PciHostBridgeUtilityLib.inf
++++ b/OvmfPkg/Library/PciHostBridgeUtilityLib/PciHostBridgeUtilityLib.inf
+@@ -19,6 +19,13 @@
+   VERSION_STRING                 = 1.0
+   LIBRARY_CLASS                  = PciHostBridgeUtilityLib
+ 
++#
++# The following information is for reference only and not required by the build
++# tools.
++#
++#  VALID_ARCHITECTURES           = IA32 X64 AARCH64 ARM
++#
++
+ [Sources]
+   PciHostBridgeUtilityLib.c
+ 
+diff --git a/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf b/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
+index 9675eb081f..8257862662 100644
+--- a/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
++++ b/OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
+@@ -17,7 +17,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+@@ -71,7 +71,7 @@
+   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultParity           ## CONSUMES
+   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultStopBits         ## CONSUMES
+ 
+-[Pcd.X64]
++[Pcd.IA32, Pcd.X64]
+   gEfiMdePkgTokenSpaceGuid.PcdFSBClock
+ 
+ [Protocols]
+diff --git a/OvmfPkg/Library/PlatformBootManagerLibBhyve/PlatformBootManagerLibBhyve.inf b/OvmfPkg/Library/PlatformBootManagerLibBhyve/PlatformBootManagerLibBhyve.inf
+index 68b81b293e..abfe4f97e4 100644
+--- a/OvmfPkg/Library/PlatformBootManagerLibBhyve/PlatformBootManagerLibBhyve.inf
++++ b/OvmfPkg/Library/PlatformBootManagerLibBhyve/PlatformBootManagerLibBhyve.inf
+@@ -19,7 +19,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+@@ -59,7 +59,7 @@
+   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfHostBridgePciDevId
+   gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut
+ 
+-[Pcd.X64]
++[Pcd.IA32, Pcd.X64]
+   gEfiMdePkgTokenSpaceGuid.PcdFSBClock
+ 
+ [Protocols]
+diff --git a/OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf b/OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
+index e2c8f343c7..a8febf01ce 100644
+--- a/OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
++++ b/OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
+@@ -20,7 +20,7 @@
+   CONSTRUCTOR                    = PlatformDebugLibIoPortConstructor
+ 
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/PlatformFvbLibNull/PlatformFvbLibNull.inf b/OvmfPkg/Library/PlatformFvbLibNull/PlatformFvbLibNull.inf
+index 0778aad88d..2966af31bd 100644
+--- a/OvmfPkg/Library/PlatformFvbLibNull/PlatformFvbLibNull.inf
++++ b/OvmfPkg/Library/PlatformFvbLibNull/PlatformFvbLibNull.inf
+@@ -21,7 +21,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/PlatformSecureLib/PlatformSecureLib.inf b/OvmfPkg/Library/PlatformSecureLib/PlatformSecureLib.inf
+index 3d5245fe47..538a80d369 100644
+--- a/OvmfPkg/Library/PlatformSecureLib/PlatformSecureLib.inf
++++ b/OvmfPkg/Library/PlatformSecureLib/PlatformSecureLib.inf
+@@ -18,7 +18,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/QemuBootOrderLib/QemuBootOrderLib.inf b/OvmfPkg/Library/QemuBootOrderLib/QemuBootOrderLib.inf
+index 8797748ef5..6e320e3e85 100644
+--- a/OvmfPkg/Library/QemuBootOrderLib/QemuBootOrderLib.inf
++++ b/OvmfPkg/Library/QemuBootOrderLib/QemuBootOrderLib.inf
+@@ -16,6 +16,13 @@
+   VERSION_STRING                 = 1.0
+   LIBRARY_CLASS                  = QemuBootOrderLib|DXE_DRIVER
+ 
++#
++# The following information is for reference only and not required by the build
++# tools.
++#
++#  VALID_ARCHITECTURES           = IA32 X64 EBC ARM AARCH64
++#
++
+ [Sources]
+   ExtraRootBusMap.c
+   ExtraRootBusMap.h
+diff --git a/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgDxeLib.inf b/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgDxeLib.inf
+index 01d75a68e6..51326807ef 100644
+--- a/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgDxeLib.inf
++++ b/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgDxeLib.inf
+@@ -23,7 +23,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/QemuFwCfgS3Lib/DxeQemuFwCfgS3LibFwCfg.inf b/OvmfPkg/Library/QemuFwCfgS3Lib/DxeQemuFwCfgS3LibFwCfg.inf
+index 655e630232..10f41d64c6 100644
+--- a/OvmfPkg/Library/QemuFwCfgS3Lib/DxeQemuFwCfgS3LibFwCfg.inf
++++ b/OvmfPkg/Library/QemuFwCfgS3Lib/DxeQemuFwCfgS3LibFwCfg.inf
+@@ -15,6 +15,13 @@
+   VERSION_STRING                 = 1.0
+   LIBRARY_CLASS                  = QemuFwCfgS3Lib|DXE_DRIVER DXE_RUNTIME_DRIVER
+ 
++#
++# The following information is for reference only and not required by the build
++# tools.
++#
++#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64 EBC
++#
++
+ [Sources]
+   QemuFwCfgS3Dxe.c
+   QemuFwCfgS3PeiDxe.c
+diff --git a/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLib.inf b/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLib.inf
+index d96a76d420..a9b4ce9000 100644
+--- a/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLib.inf
++++ b/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLib.inf
+@@ -20,7 +20,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLibMicrovm.inf b/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLibMicrovm.inf
+index 98e54096e8..ac9c259964 100644
+--- a/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLibMicrovm.inf
++++ b/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLibMicrovm.inf
+@@ -20,7 +20,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLibXen.inf b/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLibXen.inf
+index 901ebad807..ccee69e6e1 100644
+--- a/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLibXen.inf
++++ b/OvmfPkg/Library/ResetSystemLib/DxeResetSystemLibXen.inf
+@@ -22,7 +22,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/SmbiosVersionLib/DetectSmbiosVersionLib.inf b/OvmfPkg/Library/SmbiosVersionLib/DetectSmbiosVersionLib.inf
+index 83cfbc105b..8417498d9e 100644
+--- a/OvmfPkg/Library/SmbiosVersionLib/DetectSmbiosVersionLib.inf
++++ b/OvmfPkg/Library/SmbiosVersionLib/DetectSmbiosVersionLib.inf
+@@ -20,6 +20,13 @@
+   LIBRARY_CLASS                  = SmbiosVersionLib|DXE_DRIVER
+   CONSTRUCTOR                    = DetectSmbiosVersion
+ 
++#
++# The following information is for reference only and not required by the build
++# tools.
++#
++#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64
++#
++
+ [Sources]
+   DetectSmbiosVersionLib.c
+ 
+diff --git a/OvmfPkg/Library/SmmCpuPlatformHookLibQemu/SmmCpuPlatformHookLibQemu.inf b/OvmfPkg/Library/SmmCpuPlatformHookLibQemu/SmmCpuPlatformHookLibQemu.inf
+index af727efc1a..413c56fce6 100644
+--- a/OvmfPkg/Library/SmmCpuPlatformHookLibQemu/SmmCpuPlatformHookLibQemu.inf
++++ b/OvmfPkg/Library/SmmCpuPlatformHookLibQemu/SmmCpuPlatformHookLibQemu.inf
+@@ -18,7 +18,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/Tcg2PhysicalPresenceLibQemu/DxeTcg2PhysicalPresenceLib.inf b/OvmfPkg/Library/Tcg2PhysicalPresenceLibQemu/DxeTcg2PhysicalPresenceLib.inf
+index 7cfc0804b2..5b5417c321 100644
+--- a/OvmfPkg/Library/Tcg2PhysicalPresenceLibQemu/DxeTcg2PhysicalPresenceLib.inf
++++ b/OvmfPkg/Library/Tcg2PhysicalPresenceLibQemu/DxeTcg2PhysicalPresenceLib.inf
+@@ -36,7 +36,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/TlsAuthConfigLib/TlsAuthConfigLib.inf b/OvmfPkg/Library/TlsAuthConfigLib/TlsAuthConfigLib.inf
+index 08dc8c283a..a2ec42a3a4 100644
+--- a/OvmfPkg/Library/TlsAuthConfigLib/TlsAuthConfigLib.inf
++++ b/OvmfPkg/Library/TlsAuthConfigLib/TlsAuthConfigLib.inf
+@@ -24,7 +24,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 AARCH64
++#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/Library/X86QemuLoadImageLib/X86QemuLoadImageLib.c b/OvmfPkg/Library/X86QemuLoadImageLib/X86QemuLoadImageLib.c
+index e888ac1a97..ef5af734dc 100644
+--- a/OvmfPkg/Library/X86QemuLoadImageLib/X86QemuLoadImageLib.c
++++ b/OvmfPkg/Library/X86QemuLoadImageLib/X86QemuLoadImageLib.c
+@@ -641,6 +641,36 @@ QemuStartKernelImage (
+                   NULL,              // ExitDataSize
+                   NULL               // ExitData
+                   );
++ #ifdef MDE_CPU_IA32
++  if (Status == EFI_UNSUPPORTED) {
++    EFI_HANDLE  KernelImageHandle;
++
++    //
++    // On IA32, EFI_UNSUPPORTED means that the image's machine type is X64 while
++    // we are expecting a IA32 one, and the StartImage () boot service is unable
++    // to handle it, either because the image does not have the special .compat
++    // PE/COFF section that Linux specifies for mixed mode capable images, or
++    // because we are running without the support code for that. So load the
++    // image again, using the legacy loader, and unload the normally loaded
++    // image before starting the legacy one.
++    //
++    Status = QemuLoadLegacyImage (&KernelImageHandle);
++    if (EFI_ERROR (Status)) {
++      //
++      // Note: no change to (*ImageHandle), the caller will release it.
++      //
++      return Status;
++    }
++
++    //
++    // Swap in the legacy-loaded image.
++    //
++    QemuUnloadKernelImage (*ImageHandle);
++    *ImageHandle = KernelImageHandle;
++    return QemuStartLegacyImage (KernelImageHandle);
++  }
++
++ #endif
+   return Status;
+ }
+ 
+@@ -688,9 +718,10 @@ QemuUnloadKernelImage (
+   }
+ 
+   //
+-  // We are unloading a normal, non-legacy loaded image, on behalf of an external
+-  // caller while switching from the normal to the legacy method to load and
+-  // start a X64 image.
++  // We are unloading a normal, non-legacy loaded image, either on behalf of
++  // an external caller, or called from QemuStartKernelImage() on IA32, while
++  // switching from the normal to the legacy method to load and start a X64
++  // image.
+   //
+   if (KernelLoadedImage->LoadOptions != NULL) {
+     FreePool (KernelLoadedImage->LoadOptions);
+diff --git a/OvmfPkg/Library/XenHypercallLib/Ia32/hypercall.nasm b/OvmfPkg/Library/XenHypercallLib/Ia32/hypercall.nasm
+new file mode 100644
+index 0000000000..abcfcb55ce
+--- /dev/null
++++ b/OvmfPkg/Library/XenHypercallLib/Ia32/hypercall.nasm
+@@ -0,0 +1,48 @@
++SECTION .text
++
++; INTN
++; EFIAPI
++; __XenVmmcall2 (
++;   IN     INTN HypercallNum,
++;   IN OUT INTN Arg1,
++;   IN OUT INTN Arg2
++;   );
++global ASM_PFX(__XenVmmcall2)
++ASM_PFX(__XenVmmcall2):
++  ; Save only ebx, ecx is supposed to be a scratch register and needs to be
++  ; saved by the caller
++  push ebx
++  ; Copy HypercallNum to eax
++  mov eax, [esp + 8]
++  ; Copy Arg1 to the register expected by Xen
++  mov ebx, [esp + 12]
++  ; Copy Arg2 to the register expected by Xen
++  mov ecx, [esp + 16]
++  ; Call Hypercall
++  vmmcall
++  pop ebx
++  ret
++
++; INTN
++; EFIAPI
++; __XenVmcall2 (
++;   IN     INTN HypercallNum,
++;   IN OUT INTN Arg1,
++;   IN OUT INTN Arg2
++;   );
++global ASM_PFX(__XenVmcall2)
++ASM_PFX(__XenVmcall2):
++  ; Save only ebx, ecx is supposed to be a scratch register and needs to be
++  ; saved by the caller
++  push ebx
++  ; Copy HypercallNum to eax
++  mov eax, [esp + 8]
++  ; Copy Arg1 to the register expected by Xen
++  mov ebx, [esp + 12]
++  ; Copy Arg2 to the register expected by Xen
++  mov ecx, [esp + 16]
++  ; Call Hypercall
++  vmcall
++  pop ebx
++  ret
++
+diff --git a/OvmfPkg/Library/XenHypercallLib/XenHypercallLib.inf b/OvmfPkg/Library/XenHypercallLib/XenHypercallLib.inf
+index 950b92184f..dedb5a159b 100644
+--- a/OvmfPkg/Library/XenHypercallLib/XenHypercallLib.inf
++++ b/OvmfPkg/Library/XenHypercallLib/XenHypercallLib.inf
+@@ -18,11 +18,16 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 AARCH64
++#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64
+ #
+ 
+-[Sources.X64]
++[Sources.IA32, Sources.X64]
+   X86XenHypercall.c
++
++[Sources.IA32]
++  Ia32/hypercall.nasm
++
++[Sources.X64]
+   X64/hypercall.nasm
+ 
+ [Sources.AARCH64]
+@@ -36,7 +41,10 @@
+   MdePkg/MdePkg.dec
+   OvmfPkg/OvmfPkg.dec
+ 
+-[LibraryClasses.X64]
++[LibraryClasses.IA32, LibraryClasses.X64]
+   CpuLib
+   BaseLib
+   DebugLib
++
++[Guids.IA32, Guids.X64]
++  gEfiXenInfoGuid
+diff --git a/OvmfPkg/LinuxInitrdDynamicShellCommand/LinuxInitrdDynamicShellCommand.inf b/OvmfPkg/LinuxInitrdDynamicShellCommand/LinuxInitrdDynamicShellCommand.inf
+index 611de149af..6da6ef6d78 100644
+--- a/OvmfPkg/LinuxInitrdDynamicShellCommand/LinuxInitrdDynamicShellCommand.inf
++++ b/OvmfPkg/LinuxInitrdDynamicShellCommand/LinuxInitrdDynamicShellCommand.inf
+@@ -19,6 +19,10 @@
+   UNLOAD_IMAGE                   = LinuxInitrdDynamicShellCommandUnload
+   UEFI_HII_RESOURCE_SECTION      = TRUE
+ 
++#
++#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64 EBC
++#
++
+ [Sources.common]
+   LinuxInitrdDynamicShellCommand.c
+   LinuxInitrdDynamicShellCommand.uni
+diff --git a/OvmfPkg/OvmfPkgIa32.dsc b/OvmfPkg/OvmfPkgIa32.dsc
+new file mode 100644
+index 0000000000..a196c8158e
+--- /dev/null
++++ b/OvmfPkg/OvmfPkgIa32.dsc
+@@ -0,0 +1,940 @@
++## @file
++#  EFI/Framework Open Virtual Machine Firmware (OVMF) platform
++#
++#  Copyright (c) 2006 - 2024, Intel Corporation. All rights reserved.<BR>
++#  (C) Copyright 2016 Hewlett Packard Enterprise Development LP<BR>
++#  Copyright (c) Microsoft Corporation.
++#
++#  SPDX-License-Identifier: BSD-2-Clause-Patent
++#
++##
++
++################################################################################
++#
++# Defines Section - statements that will be processed to create a Makefile.
++#
++################################################################################
++[Defines]
++  PLATFORM_NAME                  = Ovmf
++  PLATFORM_GUID                  = 5a9e7754-d81b-49ea-85ad-69eaa7b1539b
++  PLATFORM_VERSION               = 0.1
++  DSC_SPECIFICATION              = 0x00010005
++  OUTPUT_DIRECTORY               = Build/OvmfIa32
++  SUPPORTED_ARCHITECTURES        = IA32
++  BUILD_TARGETS                  = NOOPT|DEBUG|RELEASE
++  SKUID_IDENTIFIER               = DEFAULT
++  FLASH_DEFINITION               = OvmfPkg/OvmfPkgIa32.fdf
++
++  #
++  # Defines for default states.  These can be changed on the command line.
++  # -D FLAG=VALUE
++  #
++  DEFINE SECURE_BOOT_ENABLE      = FALSE
++  DEFINE SMM_REQUIRE             = FALSE
++  DEFINE SOURCE_DEBUG_ENABLE     = FALSE
++  DEFINE LOAD_X64_ON_IA32_ENABLE = FALSE
++
++!include OvmfPkg/Include/Dsc/OvmfTpmDefines.dsc.inc
++
++  #
++  # Shell can be useful for debugging but should not be enabled for production
++  #
++  DEFINE BUILD_SHELL             = TRUE
++
++  #
++  # Network definition
++  #
++  DEFINE NETWORK_TLS_ENABLE             = FALSE
++  DEFINE NETWORK_IP6_ENABLE             = FALSE
++  DEFINE NETWORK_HTTP_BOOT_ENABLE       = FALSE
++  DEFINE NETWORK_ALLOW_HTTP_CONNECTIONS = TRUE
++  DEFINE NETWORK_ISCSI_ENABLE           = TRUE
++  DEFINE NETWORK_PXE_BOOT_ENABLE        = TRUE
++
++!include NetworkPkg/NetworkDefines.dsc.inc
++
++  #
++  # Device drivers
++  #
++!include OvmfPkg/Include/Dsc/OvmfOptHwDefines.dsc.inc
++
++  #
++  # Flash size selection. Setting FD_SIZE_IN_KB on the command line directly to
++  # one of the supported values, in place of any of the convenience macros, is
++  # permitted.
++  #
++!ifdef $(FD_SIZE_1MB)
++  DEFINE FD_SIZE_IN_KB           = 1024
++!else
++!ifdef $(FD_SIZE_2MB)
++  DEFINE FD_SIZE_IN_KB           = 2048
++!else
++!ifdef $(FD_SIZE_4MB)
++  DEFINE FD_SIZE_IN_KB           = 4096
++!else
++  DEFINE FD_SIZE_IN_KB           = 4096
++!endif
++!endif
++!endif
++
++!include OvmfPkg/Include/Dsc/OvmfPkg.dsc.inc
++
++[BuildOptions]
++  GCC:RELEASE_*_*_CC_FLAGS             = -DMDEPKG_NDEBUG
++  INTEL:RELEASE_*_*_CC_FLAGS           = /D MDEPKG_NDEBUG
++  MSFT:RELEASE_*_*_CC_FLAGS            = /D MDEPKG_NDEBUG
++!if $(TOOL_CHAIN_TAG) != "XCODE5" && $(TOOL_CHAIN_TAG) != "CLANGPDB"
++  GCC:*_*_*_CC_FLAGS                   = -mno-mmx -mno-sse
++!endif
++  RELEASE_*_*_GENFW_FLAGS = --zero
++
++  #
++  # Disable deprecated APIs.
++  #
++  MSFT:*_*_*_CC_FLAGS = /D DISABLE_NEW_DEPRECATED_INTERFACES
++  INTEL:*_*_*_CC_FLAGS = /D DISABLE_NEW_DEPRECATED_INTERFACES
++  GCC:*_*_*_CC_FLAGS = -D DISABLE_NEW_DEPRECATED_INTERFACES
++
++!include NetworkPkg/NetworkBuildOptions.dsc.inc
++
++[BuildOptions.common.EDKII.DXE_RUNTIME_DRIVER]
++  GCC:*_*_*_DLINK_FLAGS = -z common-page-size=0x1000
++  XCODE:*_*_*_DLINK_FLAGS = -seg1addr 0x1000 -segalign 0x1000
++  XCODE:*_*_*_MTOC_FLAGS = -align 0x1000
++  CLANGPDB:*_*_*_DLINK_FLAGS = /ALIGN:4096
++
++# Force PE/COFF sections to be aligned at 4KB boundaries to support page level
++# protection of DXE_SMM_DRIVER/SMM_CORE modules
++[BuildOptions.common.EDKII.DXE_SMM_DRIVER, BuildOptions.common.EDKII.SMM_CORE]
++  GCC:*_*_*_DLINK_FLAGS = -z common-page-size=0x1000
++  XCODE:*_*_*_DLINK_FLAGS = -seg1addr 0x1000 -segalign 0x1000
++  XCODE:*_*_*_MTOC_FLAGS = -align 0x1000
++  CLANGPDB:*_*_*_DLINK_FLAGS = /ALIGN:4096
++
++################################################################################
++#
++# SKU Identification section - list of all SKU IDs supported by this Platform.
++#
++################################################################################
++[SkuIds]
++  0|DEFAULT
++
++################################################################################
++#
++# Library Class section - list of all Library Classes needed by this Platform.
++#
++################################################################################
++
++!include MdePkg/MdeLibs.dsc.inc
++
++[LibraryClasses]
++  GptLib|MdeModulePkg/Library/GptLib/GptLib.inf
++  SmmRelocationLib|OvmfPkg/Library/SmmRelocationLib/SmmRelocationLib.inf
++  PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
++  TimerLib|OvmfPkg/Library/AcpiTimerLib/BaseAcpiTimerLib.inf
++  ResetSystemLib|OvmfPkg/Library/ResetSystemLib/BaseResetSystemLib.inf
++  PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
++  BaseMemoryLib|MdePkg/Library/BaseMemoryLibRepStr/BaseMemoryLibRepStr.inf
++  BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
++  SafeIntLib|MdePkg/Library/BaseSafeIntLib/BaseSafeIntLib.inf
++  TimeBaseLib|EmbeddedPkg/Library/TimeBaseLib/TimeBaseLib.inf
++  BmpSupportLib|MdeModulePkg/Library/BaseBmpSupportLib/BaseBmpSupportLib.inf
++  SynchronizationLib|MdePkg/Library/BaseSynchronizationLib/BaseSynchronizationLib.inf
++  CpuLib|MdePkg/Library/BaseCpuLib/BaseCpuLib.inf
++  PerformanceLib|MdePkg/Library/BasePerformanceLibNull/BasePerformanceLibNull.inf
++  PeCoffLib|MdePkg/Library/BasePeCoffLib/BasePeCoffLib.inf
++  CacheMaintenanceLib|MdePkg/Library/BaseCacheMaintenanceLib/BaseCacheMaintenanceLib.inf
++  UefiDecompressLib|MdePkg/Library/BaseUefiDecompressLib/BaseUefiDecompressLib.inf
++  UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
++  HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
++  SortLib|MdeModulePkg/Library/UefiSortLib/UefiSortLib.inf
++  UefiBootManagerLib|MdeModulePkg/Library/UefiBootManagerLib/UefiBootManagerLib.inf
++  BootLogoLib|MdeModulePkg/Library/BootLogoLib/BootLogoLib.inf
++  FileExplorerLib|MdeModulePkg/Library/FileExplorerLib/FileExplorerLib.inf
++  CapsuleLib|MdeModulePkg/Library/DxeCapsuleLibNull/DxeCapsuleLibNull.inf
++  DxeServicesLib|MdePkg/Library/DxeServicesLib/DxeServicesLib.inf
++  DxeServicesTableLib|MdePkg/Library/DxeServicesTableLib/DxeServicesTableLib.inf
++  PeCoffGetEntryPointLib|MdePkg/Library/BasePeCoffGetEntryPointLib/BasePeCoffGetEntryPointLib.inf
++  PciCf8Lib|MdePkg/Library/BasePciCf8Lib/BasePciCf8Lib.inf
++  PciExpressLib|MdePkg/Library/BasePciExpressLib/BasePciExpressLib.inf
++  PciLib|MdePkg/Library/BasePciLibCf8/BasePciLibCf8.inf
++  PciSegmentLib|MdePkg/Library/BasePciSegmentLibPci/BasePciSegmentLibPci.inf
++  PciCapLib|OvmfPkg/Library/BasePciCapLib/BasePciCapLib.inf
++  PciCapPciSegmentLib|OvmfPkg/Library/BasePciCapPciSegmentLib/BasePciCapPciSegmentLib.inf
++  PciCapPciIoLib|OvmfPkg/Library/UefiPciCapPciIoLib/UefiPciCapPciIoLib.inf
++  CcProbeLib|MdePkg/Library/CcProbeLibNull/CcProbeLibNull.inf
++  IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsicSev.inf
++  OemHookStatusCodeLib|MdeModulePkg/Library/OemHookStatusCodeLibNull/OemHookStatusCodeLibNull.inf
++  SerialPortLib|PcAtChipsetPkg/Library/SerialIoLib/SerialIoLib.inf
++  MtrrLib|UefiCpuPkg/Library/MtrrLib/MtrrLib.inf
++  MicrocodeLib|UefiCpuPkg/Library/MicrocodeLib/MicrocodeLib.inf
++  CpuPageTableLib|UefiCpuPkg/Library/CpuPageTableLib/CpuPageTableLib.inf
++  UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
++  UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
++  UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
++  UefiDriverEntryPoint|MdePkg/Library/UefiDriverEntryPoint/UefiDriverEntryPoint.inf
++  UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
++  DevicePathLib|MdePkg/Library/UefiDevicePathLibDevicePathProtocol/UefiDevicePathLibDevicePathProtocol.inf
++  NvVarsFileLib|OvmfPkg/Library/NvVarsFileLib/NvVarsFileLib.inf
++  FileHandleLib|MdePkg/Library/UefiFileHandleLib/UefiFileHandleLib.inf
++  SecurityManagementLib|MdeModulePkg/Library/DxeSecurityManagementLib/DxeSecurityManagementLib.inf
++  UefiUsbLib|MdePkg/Library/UefiUsbLib/UefiUsbLib.inf
++  SerializeVariablesLib|OvmfPkg/Library/SerializeVariablesLib/SerializeVariablesLib.inf
++  QemuFwCfgLib|OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgDxeLib.inf
++  QemuFwCfgSimpleParserLib|OvmfPkg/Library/QemuFwCfgSimpleParserLib/QemuFwCfgSimpleParserLib.inf
++  VirtioLib|OvmfPkg/Library/VirtioLib/VirtioLib.inf
++  LoadLinuxLib|OvmfPkg/Library/LoadLinuxLib/LoadLinuxLib.inf
++  MemEncryptSevLib|OvmfPkg/Library/BaseMemEncryptSevLib/DxeMemEncryptSevLib.inf
++  MemEncryptTdxLib|OvmfPkg/Library/BaseMemEncryptTdxLib/BaseMemEncryptTdxLibNull.inf
++  PeiHardwareInfoLib|OvmfPkg/Library/HardwareInfoLib/PeiHardwareInfoLib.inf
++  DxeHardwareInfoLib|OvmfPkg/Library/HardwareInfoLib/DxeHardwareInfoLib.inf
++  ImagePropertiesRecordLib|MdeModulePkg/Library/ImagePropertiesRecordLib/ImagePropertiesRecordLib.inf
++  HstiLib|MdePkg/Library/DxeHstiLib/DxeHstiLib.inf
++!if $(SMM_REQUIRE) == FALSE
++  LockBoxLib|OvmfPkg/Library/LockBoxLib/LockBoxBaseLib.inf
++!endif
++  CustomizedDisplayLib|MdeModulePkg/Library/CustomizedDisplayLib/CustomizedDisplayLib.inf
++  FrameBufferBltLib|MdeModulePkg/Library/FrameBufferBltLib/FrameBufferBltLib.inf
++
++!if $(SOURCE_DEBUG_ENABLE) == TRUE
++  PeCoffExtraActionLib|SourceLevelDebugPkg/Library/PeCoffExtraActionLibDebug/PeCoffExtraActionLibDebug.inf
++  DebugCommunicationLib|SourceLevelDebugPkg/Library/DebugCommunicationLibSerialPort/DebugCommunicationLibSerialPort.inf
++!else
++  PeCoffExtraActionLib|MdePkg/Library/BasePeCoffExtraActionLibNull/BasePeCoffExtraActionLibNull.inf
++  DebugAgentLib|MdeModulePkg/Library/DebugAgentLibNull/DebugAgentLibNull.inf
++!endif
++
++  LocalApicLib|UefiCpuPkg/Library/BaseXApicX2ApicLib/BaseXApicX2ApicLib.inf
++  DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf
++
++  RngLib|MdeModulePkg/Library/BaseRngLibTimerLib/BaseRngLibTimerLib.inf
++
++!if $(SECURE_BOOT_ENABLE) == TRUE
++  PlatformSecureLib|OvmfPkg/Library/PlatformSecureLib/PlatformSecureLib.inf
++  AuthVariableLib|SecurityPkg/Library/AuthVariableLib/AuthVariableLib.inf
++  SecureBootVariableLib|SecurityPkg/Library/SecureBootVariableLib/SecureBootVariableLib.inf
++  PlatformPKProtectionLib|SecurityPkg/Library/PlatformPKProtectionLibVarPolicy/PlatformPKProtectionLibVarPolicy.inf
++  SecureBootVariableProvisionLib|SecurityPkg/Library/SecureBootVariableProvisionLib/SecureBootVariableProvisionLib.inf
++!else
++  AuthVariableLib|MdeModulePkg/Library/AuthVariableLibNull/AuthVariableLibNull.inf
++!endif
++  VarCheckLib|MdeModulePkg/Library/VarCheckLib/VarCheckLib.inf
++  VariablePolicyLib|MdeModulePkg/Library/VariablePolicyLib/VariablePolicyLib.inf
++  VariablePolicyHelperLib|MdeModulePkg/Library/VariablePolicyHelperLib/VariablePolicyHelperLib.inf
++  VariableFlashInfoLib|MdeModulePkg/Library/BaseVariableFlashInfoLib/BaseVariableFlashInfoLib.inf
++
++  #
++  # Network libraries
++  #
++!include NetworkPkg/NetworkLibs.dsc.inc
++
++  ShellCEntryLib|ShellPkg/Library/UefiShellCEntryLib/UefiShellCEntryLib.inf
++
++  S3BootScriptLib|MdeModulePkg/Library/PiDxeS3BootScriptLib/DxeS3BootScriptLib.inf
++  SmbusLib|MdePkg/Library/BaseSmbusLibNull/BaseSmbusLibNull.inf
++  OrderedCollectionLib|MdePkg/Library/BaseOrderedCollectionRedBlackTreeLib/BaseOrderedCollectionRedBlackTreeLib.inf
++
++!include OvmfPkg/Include/Dsc/OvmfTpmLibs.dsc.inc
++!include OvmfPkg/Include/Dsc/ShellLibs.dsc.inc
++!include OvmfPkg/Include/Dsc/OvmfTlsLibs.dsc.inc
++
++[LibraryClasses.common]
++  AmdSvsmLib|UefiCpuPkg/Library/AmdSvsmLibNull/AmdSvsmLibNull.inf
++  BaseCryptLib|CryptoPkg/Library/BaseCryptLib/BaseCryptLib.inf
++  CcExitLib|UefiCpuPkg/Library/CcExitLibNull/CcExitLibNull.inf
++  TdxLib|MdePkg/Library/TdxLib/TdxLib.inf
++  TdxMailboxLib|OvmfPkg/Library/TdxMailboxLib/TdxMailboxLibNull.inf
++  TdxHelperLib|OvmfPkg/IntelTdx/TdxHelperLib/TdxHelperLibNull.inf
++  MemDebugLogLib|OvmfPkg/Library/MemDebugLogLib/MemDebugLogLibNull.inf
++
++[LibraryClasses.common.SEC]
++  TimerLib|OvmfPkg/Library/AcpiTimerLib/BaseRomAcpiTimerLib.inf
++  QemuFwCfgLib|OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgSecLib.inf
++!ifdef $(DEBUG_ON_SERIAL_PORT)
++  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
++!else
++  DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformRomDebugLibIoPort.inf
++!endif
++  ReportStatusCodeLib|MdeModulePkg/Library/PeiReportStatusCodeLib/PeiReportStatusCodeLib.inf
++  ExtractGuidedSectionLib|MdePkg/Library/BaseExtractGuidedSectionLib/BaseExtractGuidedSectionLib.inf
++!if $(SOURCE_DEBUG_ENABLE) == TRUE
++  DebugAgentLib|SourceLevelDebugPkg/Library/DebugAgent/SecPeiDebugAgentLib.inf
++!endif
++  HobLib|MdePkg/Library/PeiHobLib/PeiHobLib.inf
++  PeiServicesLib|MdePkg/Library/PeiServicesLib/PeiServicesLib.inf
++  PeiServicesTablePointerLib|MdePkg/Library/PeiServicesTablePointerLibIdt/PeiServicesTablePointerLibIdt.inf
++  MemoryAllocationLib|MdePkg/Library/PeiMemoryAllocationLib/PeiMemoryAllocationLib.inf
++  CpuExceptionHandlerLib|UefiCpuPkg/Library/CpuExceptionHandlerLib/SecPeiCpuExceptionHandlerLib.inf
++  MemEncryptSevLib|OvmfPkg/Library/BaseMemEncryptSevLib/SecMemEncryptSevLib.inf
++
++[LibraryClasses.common.PEI_CORE]
++  HobLib|MdePkg/Library/PeiHobLib/PeiHobLib.inf
++  PeiServicesTablePointerLib|MdePkg/Library/PeiServicesTablePointerLibIdt/PeiServicesTablePointerLibIdt.inf
++  PeiServicesLib|MdePkg/Library/PeiServicesLib/PeiServicesLib.inf
++  MemoryAllocationLib|MdePkg/Library/PeiMemoryAllocationLib/PeiMemoryAllocationLib.inf
++  PeiCoreEntryPoint|MdePkg/Library/PeiCoreEntryPoint/PeiCoreEntryPoint.inf
++  ReportStatusCodeLib|MdeModulePkg/Library/PeiReportStatusCodeLib/PeiReportStatusCodeLib.inf
++  OemHookStatusCodeLib|MdeModulePkg/Library/OemHookStatusCodeLibNull/OemHookStatusCodeLibNull.inf
++  PeCoffGetEntryPointLib|MdePkg/Library/BasePeCoffGetEntryPointLib/BasePeCoffGetEntryPointLib.inf
++!ifdef $(DEBUG_ON_SERIAL_PORT)
++  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
++!else
++  DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformRomDebugLibIoPort.inf
++!endif
++  PeCoffLib|MdePkg/Library/BasePeCoffLib/BasePeCoffLib.inf
++
++[LibraryClasses.common.PEIM]
++  HobLib|MdePkg/Library/PeiHobLib/PeiHobLib.inf
++  PeiServicesTablePointerLib|MdePkg/Library/PeiServicesTablePointerLibIdt/PeiServicesTablePointerLibIdt.inf
++  PeiServicesLib|MdePkg/Library/PeiServicesLib/PeiServicesLib.inf
++  MemoryAllocationLib|MdePkg/Library/PeiMemoryAllocationLib/PeiMemoryAllocationLib.inf
++  PeimEntryPoint|MdePkg/Library/PeimEntryPoint/PeimEntryPoint.inf
++  ReportStatusCodeLib|MdeModulePkg/Library/PeiReportStatusCodeLib/PeiReportStatusCodeLib.inf
++  OemHookStatusCodeLib|MdeModulePkg/Library/OemHookStatusCodeLibNull/OemHookStatusCodeLibNull.inf
++  PeCoffGetEntryPointLib|MdePkg/Library/BasePeCoffGetEntryPointLib/BasePeCoffGetEntryPointLib.inf
++!ifdef $(DEBUG_ON_SERIAL_PORT)
++  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
++!else
++  DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformRomDebugLibIoPort.inf
++!endif
++  PeCoffLib|MdePkg/Library/BasePeCoffLib/BasePeCoffLib.inf
++  ResourcePublicationLib|MdePkg/Library/PeiResourcePublicationLib/PeiResourcePublicationLib.inf
++  ExtractGuidedSectionLib|MdePkg/Library/PeiExtractGuidedSectionLib/PeiExtractGuidedSectionLib.inf
++!if $(SOURCE_DEBUG_ENABLE) == TRUE
++  DebugAgentLib|SourceLevelDebugPkg/Library/DebugAgent/SecPeiDebugAgentLib.inf
++!endif
++  CpuExceptionHandlerLib|UefiCpuPkg/Library/CpuExceptionHandlerLib/PeiCpuExceptionHandlerLib.inf
++  MpInitLib|UefiCpuPkg/Library/MpInitLib/PeiMpInitLib.inf
++  QemuFwCfgS3Lib|OvmfPkg/Library/QemuFwCfgS3Lib/PeiQemuFwCfgS3LibFwCfg.inf
++  PcdLib|MdePkg/Library/PeiPcdLib/PeiPcdLib.inf
++  QemuFwCfgLib|OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgPeiLib.inf
++  PlatformInitLib|OvmfPkg/Library/PlatformInitLib/PlatformInitLib.inf
++
++  MemEncryptSevLib|OvmfPkg/Library/BaseMemEncryptSevLib/PeiMemEncryptSevLib.inf
++
++[LibraryClasses.common.DXE_CORE]
++  HobLib|MdePkg/Library/DxeCoreHobLib/DxeCoreHobLib.inf
++  DxeCoreEntryPoint|MdePkg/Library/DxeCoreEntryPoint/DxeCoreEntryPoint.inf
++  MemoryAllocationLib|MdeModulePkg/Library/DxeCoreMemoryAllocationLib/DxeCoreMemoryAllocationLib.inf
++  ReportStatusCodeLib|MdeModulePkg/Library/DxeReportStatusCodeLib/DxeReportStatusCodeLib.inf
++!ifdef $(DEBUG_ON_SERIAL_PORT)
++  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
++!else
++  DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
++!endif
++  ExtractGuidedSectionLib|MdePkg/Library/DxeExtractGuidedSectionLib/DxeExtractGuidedSectionLib.inf
++!if $(SOURCE_DEBUG_ENABLE) == TRUE
++  DebugAgentLib|SourceLevelDebugPkg/Library/DebugAgent/DxeDebugAgentLib.inf
++!endif
++  CpuExceptionHandlerLib|UefiCpuPkg/Library/CpuExceptionHandlerLib/DxeCpuExceptionHandlerLib.inf
++  PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
++
++[LibraryClasses.common.DXE_RUNTIME_DRIVER]
++  PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
++  TimerLib|OvmfPkg/Library/AcpiTimerLib/DxeAcpiTimerLib.inf
++  ResetSystemLib|OvmfPkg/Library/ResetSystemLib/DxeResetSystemLib.inf
++  HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
++  DxeCoreEntryPoint|MdePkg/Library/DxeCoreEntryPoint/DxeCoreEntryPoint.inf
++  MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
++  ReportStatusCodeLib|MdeModulePkg/Library/RuntimeDxeReportStatusCodeLib/RuntimeDxeReportStatusCodeLib.inf
++!ifdef $(DEBUG_ON_SERIAL_PORT)
++  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
++!else
++  DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
++!endif
++  UefiRuntimeLib|MdePkg/Library/UefiRuntimeLib/UefiRuntimeLib.inf
++  BaseCryptLib|CryptoPkg/Library/BaseCryptLib/RuntimeCryptLib.inf
++  PciLib|OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf
++  QemuFwCfgS3Lib|OvmfPkg/Library/QemuFwCfgS3Lib/DxeQemuFwCfgS3LibFwCfg.inf
++  VariablePolicyLib|MdeModulePkg/Library/VariablePolicyLib/VariablePolicyLibRuntimeDxe.inf
++!if $(SMM_REQUIRE) == TRUE
++  MmUnblockMemoryLib|MdePkg/Library/MmUnblockMemoryLib/MmUnblockMemoryLibNull.inf
++!endif
++
++[LibraryClasses.common.UEFI_DRIVER]
++  PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
++  TimerLib|OvmfPkg/Library/AcpiTimerLib/DxeAcpiTimerLib.inf
++  ResetSystemLib|OvmfPkg/Library/ResetSystemLib/DxeResetSystemLib.inf
++  HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
++  DxeCoreEntryPoint|MdePkg/Library/DxeCoreEntryPoint/DxeCoreEntryPoint.inf
++  MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
++  ReportStatusCodeLib|MdeModulePkg/Library/DxeReportStatusCodeLib/DxeReportStatusCodeLib.inf
++!ifdef $(DEBUG_ON_SERIAL_PORT)
++  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
++!else
++  DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
++!endif
++  UefiScsiLib|MdePkg/Library/UefiScsiLib/UefiScsiLib.inf
++  PciLib|OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf
++
++[LibraryClasses.common.DXE_DRIVER]
++  AcpiPlatformLib|OvmfPkg/Library/AcpiPlatformLib/DxeAcpiPlatformLib.inf
++  PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
++  TimerLib|OvmfPkg/Library/AcpiTimerLib/DxeAcpiTimerLib.inf
++  ResetSystemLib|OvmfPkg/Library/ResetSystemLib/DxeResetSystemLib.inf
++  HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
++  MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
++  ReportStatusCodeLib|MdeModulePkg/Library/DxeReportStatusCodeLib/DxeReportStatusCodeLib.inf
++  UefiScsiLib|MdePkg/Library/UefiScsiLib/UefiScsiLib.inf
++!ifdef $(DEBUG_ON_SERIAL_PORT)
++  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
++!else
++  DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
++!endif
++  PlatformBootManagerLib|OvmfPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
++  PlatformBmPrintScLib|OvmfPkg/Library/PlatformBmPrintScLib/PlatformBmPrintScLib.inf
++  QemuBootOrderLib|OvmfPkg/Library/QemuBootOrderLib/QemuBootOrderLib.inf
++  PlatformBootManagerCommonLib|OvmfPkg/Library/PlatformBootManagerCommonLib/PlatformBootManagerCommonLib.inf
++  CpuExceptionHandlerLib|UefiCpuPkg/Library/CpuExceptionHandlerLib/DxeCpuExceptionHandlerLib.inf
++!if $(SMM_REQUIRE) == TRUE
++  LockBoxLib|MdeModulePkg/Library/SmmLockBoxLib/SmmLockBoxDxeLib.inf
++!else
++  LockBoxLib|OvmfPkg/Library/LockBoxLib/LockBoxDxeLib.inf
++!endif
++!if $(SOURCE_DEBUG_ENABLE) == TRUE
++  DebugAgentLib|SourceLevelDebugPkg/Library/DebugAgent/DxeDebugAgentLib.inf
++!endif
++  PciLib|OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf
++  MpInitLib|UefiCpuPkg/Library/MpInitLib/DxeMpInitLib.inf
++  NestedInterruptTplLib|OvmfPkg/Library/NestedInterruptTplLib/NestedInterruptTplLib.inf
++  QemuFwCfgS3Lib|OvmfPkg/Library/QemuFwCfgS3Lib/DxeQemuFwCfgS3LibFwCfg.inf
++  QemuLoadImageLib|OvmfPkg/Library/X86QemuLoadImageLib/X86QemuLoadImageLib.inf
++
++[LibraryClasses.common.UEFI_APPLICATION]
++  PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
++  TimerLib|OvmfPkg/Library/AcpiTimerLib/DxeAcpiTimerLib.inf
++  ResetSystemLib|OvmfPkg/Library/ResetSystemLib/DxeResetSystemLib.inf
++  HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
++  MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
++  ReportStatusCodeLib|MdeModulePkg/Library/DxeReportStatusCodeLib/DxeReportStatusCodeLib.inf
++!ifdef $(DEBUG_ON_SERIAL_PORT)
++  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
++!else
++  DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
++!endif
++  PciLib|OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf
++
++[LibraryClasses.common.DXE_SMM_DRIVER]
++  PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
++  TimerLib|OvmfPkg/Library/AcpiTimerLib/DxeAcpiTimerLib.inf
++  ResetSystemLib|OvmfPkg/Library/ResetSystemLib/DxeResetSystemLib.inf
++  MemoryAllocationLib|MdePkg/Library/SmmMemoryAllocationLib/SmmMemoryAllocationLib.inf
++  ReportStatusCodeLib|MdeModulePkg/Library/DxeReportStatusCodeLib/DxeReportStatusCodeLib.inf
++  HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
++  SmmMemLib|MdePkg/Library/SmmMemLib/SmmMemLib.inf
++  MmServicesTableLib|MdePkg/Library/MmServicesTableLib/MmServicesTableLib.inf
++  SmmServicesTableLib|MdePkg/Library/SmmServicesTableLib/SmmServicesTableLib.inf
++!ifdef $(DEBUG_ON_SERIAL_PORT)
++  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
++!else
++  DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
++!endif
++  CpuExceptionHandlerLib|UefiCpuPkg/Library/CpuExceptionHandlerLib/SmmCpuExceptionHandlerLib.inf
++!if $(SOURCE_DEBUG_ENABLE) == TRUE
++  DebugAgentLib|SourceLevelDebugPkg/Library/DebugAgent/SmmDebugAgentLib.inf
++!endif
++  BaseCryptLib|CryptoPkg/Library/BaseCryptLib/SmmCryptLib.inf
++  PciLib|OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf
++  SmmCpuRendezvousLib|UefiCpuPkg/Library/SmmCpuRendezvousLib/SmmCpuRendezvousLib.inf
++
++[LibraryClasses.common.SMM_CORE]
++  PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
++  TimerLib|OvmfPkg/Library/AcpiTimerLib/DxeAcpiTimerLib.inf
++  ResetSystemLib|OvmfPkg/Library/ResetSystemLib/DxeResetSystemLib.inf
++  SmmCorePlatformHookLib|MdeModulePkg/Library/SmmCorePlatformHookLibNull/SmmCorePlatformHookLibNull.inf
++  MemoryAllocationLib|MdeModulePkg/Library/PiSmmCoreMemoryAllocationLib/PiSmmCoreMemoryAllocationLib.inf
++  ReportStatusCodeLib|MdeModulePkg/Library/DxeReportStatusCodeLib/DxeReportStatusCodeLib.inf
++  HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
++  SmmMemLib|MdePkg/Library/SmmMemLib/SmmMemLib.inf
++  SmmServicesTableLib|MdeModulePkg/Library/PiSmmCoreSmmServicesTableLib/PiSmmCoreSmmServicesTableLib.inf
++!ifdef $(DEBUG_ON_SERIAL_PORT)
++  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
++!else
++  DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
++!endif
++  PciLib|OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf
++
++################################################################################
++#
++# Pcd Section - list of all EDK II PCD Entries defined by this Platform.
++#
++################################################################################
++[PcdsFeatureFlag]
++  gEfiMdeModulePkgTokenSpaceGuid.PcdHiiOsRuntimeSupport|FALSE
++  gEfiMdeModulePkgTokenSpaceGuid.PcdDxeIplSupportUefiDecompress|FALSE
++  gEfiMdeModulePkgTokenSpaceGuid.PcdDxeIplSwitchToLongMode|FALSE
++  gEfiMdeModulePkgTokenSpaceGuid.PcdConOutGopSupport|TRUE
++  gEfiMdeModulePkgTokenSpaceGuid.PcdInstallAcpiSdtProtocol|TRUE
++!if $(SMM_REQUIRE) == TRUE
++  gUefiOvmfPkgTokenSpaceGuid.PcdSmmSmramRequire|TRUE
++  gUefiCpuPkgTokenSpaceGuid.PcdCpuHotPlugSupport|TRUE
++  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableVariableRuntimeCache|FALSE
++!endif
++!if $(SECURE_BOOT_ENABLE) == TRUE
++  gUefiOvmfPkgTokenSpaceGuid.PcdSecureBootSupported|TRUE
++  gEfiMdeModulePkgTokenSpaceGuid.PcdRequireSelfSignedPk|TRUE
++!endif
++
++[PcdsFixedAtBuild]
++  gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000000
++  gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE
++  gEfiMdeModulePkgTokenSpaceGuid.PcdStatusCodeMemorySize|1
++!if $(SMM_REQUIRE) == FALSE
++  gEfiMdeModulePkgTokenSpaceGuid.PcdResetOnMemoryTypeInformationChange|FALSE
++!endif
++  gEfiMdePkgTokenSpaceGuid.PcdMaximumGuidedExtractHandler|0x10
++  gEfiMdePkgTokenSpaceGuid.PcdMaximumLinkedListLength|0
++!if ($(FD_SIZE_IN_KB) == 1024) || ($(FD_SIZE_IN_KB) == 2048)
++  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVariableSize|0x2000
++  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxAuthVariableSize|0x2800
++!if $(NETWORK_TLS_ENABLE) == FALSE
++  # match PcdFlashNvStorageVariableSize purely for convenience
++  gEfiMdeModulePkgTokenSpaceGuid.PcdVariableStoreSize|0xe000
++!endif
++!endif
++!if $(FD_SIZE_IN_KB) == 4096
++  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVariableSize|0x8400
++  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxAuthVariableSize|0x8400
++!if $(NETWORK_TLS_ENABLE) == FALSE
++  # match PcdFlashNvStorageVariableSize purely for convenience
++  gEfiMdeModulePkgTokenSpaceGuid.PcdVariableStoreSize|0x40000
++!endif
++!endif
++!if $(NETWORK_TLS_ENABLE) == TRUE
++  gEfiMdeModulePkgTokenSpaceGuid.PcdVariableStoreSize|0x80000
++  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVolatileVariableSize|0x40000
++!endif
++
++  gEfiMdeModulePkgTokenSpaceGuid.PcdVpdBaseAddress|0x0
++  gEfiMdeModulePkgTokenSpaceGuid.PcdStatusCodeUseSerial|FALSE
++  gEfiMdeModulePkgTokenSpaceGuid.PcdStatusCodeUseMemory|TRUE
++
++  gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x07
++
++  # DEBUG_INIT      0x00000001  // Initialization
++  # DEBUG_WARN      0x00000002  // Warnings
++  # DEBUG_LOAD      0x00000004  // Load events
++  # DEBUG_FS        0x00000008  // EFI File system
++  # DEBUG_POOL      0x00000010  // Alloc & Free (pool)
++  # DEBUG_PAGE      0x00000020  // Alloc & Free (page)
++  # DEBUG_INFO      0x00000040  // Informational debug messages
++  # DEBUG_DISPATCH  0x00000080  // PEI/DXE/SMM Dispatchers
++  # DEBUG_VARIABLE  0x00000100  // Variable
++  # DEBUG_BM        0x00000400  // Boot Manager
++  # DEBUG_BLKIO     0x00001000  // BlkIo Driver
++  # DEBUG_NET       0x00004000  // SNP Driver
++  # DEBUG_UNDI      0x00010000  // UNDI Driver
++  # DEBUG_LOADFILE  0x00020000  // LoadFile
++  # DEBUG_EVENT     0x00080000  // Event messages
++  # DEBUG_GCD       0x00100000  // Global Coherency Database changes
++  # DEBUG_CACHE     0x00200000  // Memory range cachability changes
++  # DEBUG_VERBOSE   0x00400000  // Detailed debug messages that may
++  #                             // significantly impact boot performance
++  # DEBUG_ERROR     0x80000000  // Error
++  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x8000004F
++
++!if $(SOURCE_DEBUG_ENABLE) == TRUE
++  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x17
++!else
++  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x2F
++!endif
++
++  # This PCD is used to set the base address of the PCI express hierarchy. It
++  # is only consulted when OVMF runs on Q35. In that case it is programmed into
++  # the PCIEXBAR register.
++  #
++  # On Q35 machine types that QEMU intends to support in the long term, QEMU
++  # never lets the RAM below 4 GB exceed 2816 MB.
++  gEfiMdePkgTokenSpaceGuid.PcdPciExpressBaseAddress|0xE0000000
++
++!if $(SOURCE_DEBUG_ENABLE) == TRUE
++  gEfiSourceLevelDebugPkgTokenSpaceGuid.PcdDebugLoadImageMethod|0x2
++!endif
++
++  #
++  # The NumberOfPages values below are ad-hoc. They are updated sporadically at
++  # best (please refer to git-blame for past updates). The values capture a set
++  # of BIN hints that made sense at a particular time, for some (now likely
++  # unknown) workloads / boot paths.
++  #
++  gEmbeddedTokenSpaceGuid.PcdMemoryTypeEfiACPIMemoryNVS|0x80
++  gEmbeddedTokenSpaceGuid.PcdMemoryTypeEfiACPIReclaimMemory|0x12
++  gEmbeddedTokenSpaceGuid.PcdMemoryTypeEfiReservedMemoryType|0x80
++  gEmbeddedTokenSpaceGuid.PcdMemoryTypeEfiRuntimeServicesCode|0x100
++  gEmbeddedTokenSpaceGuid.PcdMemoryTypeEfiRuntimeServicesData|0x100
++
++  #
++  # Network Pcds
++  #
++!include NetworkPkg/NetworkFixedPcds.dsc.inc
++
++  gEfiShellPkgTokenSpaceGuid.PcdShellFileOperationSize|0x20000
++
++!if $(SMM_REQUIRE) == TRUE
++  gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmStackSize|0x4000
++!endif
++
++  # Point to the MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
++  gEfiMdeModulePkgTokenSpaceGuid.PcdBootManagerMenuFile|{ 0xdc, 0x5b, 0xc2, 0xee, 0xf2, 0x67, 0x95, 0x4d, 0xb1, 0xd5, 0xf8, 0x1b, 0x20, 0x39, 0xd1, 0x1d }
++  #
++  # INIT is now triggered before BIOS by ucode/hardware. In the OVMF
++  # environment, QEMU lacks a simulation for the INIT process.
++  # To address this, PcdFirstTimeWakeUpAPsBySipi set to FALSE to
++  # broadcast INIT-SIPI-SIPI for the first time.
++  #
++  gUefiCpuPkgTokenSpaceGuid.PcdFirstTimeWakeUpAPsBySipi|FALSE
++
++################################################################################
++#
++# Pcd Dynamic Section - list of all EDK II PCD Entries defined by this Platform
++#
++################################################################################
++
++[PcdsDynamicDefault]
++  # only set when
++  #   ($(SMM_REQUIRE) == FALSE)
++  gEfiMdeModulePkgTokenSpaceGuid.PcdEmuVariableNvStoreReserved|0
++
++!if $(SMM_REQUIRE) == FALSE
++  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableBase64|0
++  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwWorkingBase64|0
++  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwSpareBase64|0
++  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwWorkingBase|0
++  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwSpareBase|0
++!endif
++  gEfiMdeModulePkgTokenSpaceGuid.PcdAcpiS3Enable|FALSE
++  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfHostBridgePciDevId|0
++  gUefiOvmfPkgTokenSpaceGuid.PcdPciIoBase|0x0
++  gUefiOvmfPkgTokenSpaceGuid.PcdPciIoSize|0x0
++  gUefiOvmfPkgTokenSpaceGuid.PcdPciMmio32Base|0x0
++  gUefiOvmfPkgTokenSpaceGuid.PcdPciMmio32Size|0x0
++
++  gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut|0
++
++  # Set video resolution for text setup.
++  gEfiMdeModulePkgTokenSpaceGuid.PcdSetupVideoHorizontalResolution|640
++  gEfiMdeModulePkgTokenSpaceGuid.PcdSetupVideoVerticalResolution|480
++
++  gEfiMdeModulePkgTokenSpaceGuid.PcdSmbiosVersion|0x0208
++  gEfiMdeModulePkgTokenSpaceGuid.PcdSmbiosDocRev|0x0
++  gUefiOvmfPkgTokenSpaceGuid.PcdQemuSmbiosValidated|FALSE
++
++  # Noexec settings for DXE.
++  gEfiMdeModulePkgTokenSpaceGuid.PcdSetNxForStack|FALSE
++
++  # UefiCpuPkg PCDs related to initial AP bringup and general AP management.
++  gUefiCpuPkgTokenSpaceGuid.PcdCpuMaxLogicalProcessorNumber|64
++  gUefiCpuPkgTokenSpaceGuid.PcdCpuBootLogicalProcessorNumber|0
++
++  # Set memory encryption mask
++  gEfiMdeModulePkgTokenSpaceGuid.PcdPteMemoryEncryptionAddressOrMask|0x0
++
++  # Set Tdx shared bit mask
++  gEfiMdeModulePkgTokenSpaceGuid.PcdTdxSharedBitMask|0x0
++
++  # Set SEV-ES defaults
++  gEfiMdeModulePkgTokenSpaceGuid.PcdGhcbBase|0
++  gEfiMdeModulePkgTokenSpaceGuid.PcdGhcbSize|0
++  gUefiCpuPkgTokenSpaceGuid.PcdSevEsIsEnabled|0
++
++!if $(SMM_REQUIRE) == TRUE
++  gUefiOvmfPkgTokenSpaceGuid.PcdQ35TsegMbytes|8
++  gUefiOvmfPkgTokenSpaceGuid.PcdQ35SmramAtDefaultSmbase|FALSE
++  gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmSyncMode|0x01
++  gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmApSyncTimeout|100000
++  gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmApSyncTimeout2|100000
++!endif
++
++  gEfiSecurityPkgTokenSpaceGuid.PcdOptionRomImageVerificationPolicy|0x00
++
++!include OvmfPkg/Include/Dsc/OvmfTpmPcds.dsc.inc
++!include OvmfPkg/Include/Dsc/OvmfDisplayPcds.dsc.inc
++
++!include NetworkPkg/NetworkDynamicPcds.dsc.inc
++
++  # Set ConfidentialComputing defaults
++  gEfiMdePkgTokenSpaceGuid.PcdConfidentialComputingGuestAttr|0
++
++  gEfiMdePkgTokenSpaceGuid.PcdFSBClock|1000000000
++
++[PcdsDynamicHii]
++!include OvmfPkg/Include/Dsc/OvmfTpmPcdsHii.dsc.inc
++
++################################################################################
++#
++# Components Section - list of all EDK II Modules needed by this Platform.
++#
++################################################################################
++[Components]
++  OvmfPkg/ResetVector/ResetVector.inf
++
++  #
++  # SEC Phase modules
++  #
++  OvmfPkg/Sec/SecMain.inf {
++    <LibraryClasses>
++      NULL|MdeModulePkg/Library/LzmaCustomDecompressLib/LzmaCustomDecompressLib.inf
++  }
++
++  #
++  # PEI Phase modules
++  #
++  MdeModulePkg/Core/Pei/PeiMain.inf
++  MdeModulePkg/Universal/PCD/Pei/Pcd.inf  {
++    <LibraryClasses>
++      PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
++  }
++  MdeModulePkg/Universal/ReportStatusCodeRouter/Pei/ReportStatusCodeRouterPei.inf {
++    <LibraryClasses>
++      PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
++  }
++  MdeModulePkg/Universal/StatusCodeHandler/Pei/StatusCodeHandlerPei.inf {
++    <LibraryClasses>
++      PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
++  }
++  MdeModulePkg/Core/DxeIplPeim/DxeIpl.inf
++
++  OvmfPkg/PlatformPei/PlatformPei.inf
++
++  UefiCpuPkg/Universal/Acpi/S3Resume2Pei/S3Resume2Pei.inf {
++    <LibraryClasses>
++!if $(SMM_REQUIRE) == TRUE
++      LockBoxLib|MdeModulePkg/Library/SmmLockBoxLib/SmmLockBoxPeiLib.inf
++!endif
++  }
++!if $(SMM_REQUIRE) == TRUE
++  MdeModulePkg/Universal/FaultTolerantWritePei/FaultTolerantWritePei.inf
++  MdeModulePkg/Universal/Variable/Pei/VariablePei.inf
++  OvmfPkg/SmmAccess/SmmAccessPei.inf
++!endif
++  UefiCpuPkg/CpuMpPei/CpuMpPei.inf
++
++!include OvmfPkg/Include/Dsc/OvmfTpmComponentsPei.dsc.inc
++
++  #
++  # DXE Phase modules
++  #
++  MdeModulePkg/Core/Dxe/DxeMain.inf {
++    <LibraryClasses>
++      NULL|MdeModulePkg/Library/LzmaCustomDecompressLib/LzmaCustomDecompressLib.inf
++      DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
++  }
++
++  MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe.inf
++  MdeModulePkg/Universal/StatusCodeHandler/RuntimeDxe/StatusCodeHandlerRuntimeDxe.inf
++  MdeModulePkg/Universal/PCD/Dxe/Pcd.inf  {
++   <LibraryClasses>
++      PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
++  }
++
++  MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
++
++  MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe.inf {
++    <LibraryClasses>
++!if $(SECURE_BOOT_ENABLE) == TRUE
++      NULL|SecurityPkg/Library/DxeImageVerificationLib/DxeImageVerificationLib.inf
++!endif
++!include OvmfPkg/Include/Dsc/OvmfTpmSecurityStub.dsc.inc
++  }
++
++  MdeModulePkg/Universal/EbcDxe/EbcDxe.inf
++  UefiCpuPkg/CpuIo2Dxe/CpuIo2Dxe.inf
++  UefiCpuPkg/CpuDxe/CpuDxe.inf
++  OvmfPkg/LocalApicTimerDxe/LocalApicTimerDxe.inf
++  OvmfPkg/IncompatiblePciDeviceSupportDxe/IncompatiblePciDeviceSupport.inf
++  OvmfPkg/PciHotPlugInitDxe/PciHotPlugInit.inf
++  MdeModulePkg/Bus/Pci/PciHostBridgeDxe/PciHostBridgeDxe.inf {
++    <LibraryClasses>
++      PciHostBridgeLib|OvmfPkg/Library/PciHostBridgeLib/PciHostBridgeLib.inf
++      PciHostBridgeUtilityLib|OvmfPkg/Library/PciHostBridgeUtilityLib/PciHostBridgeUtilityLib.inf
++      NULL|OvmfPkg/Library/PlatformHasIoMmuLib/PlatformHasIoMmuLib.inf
++  }
++  MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe.inf {
++    <LibraryClasses>
++      PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
++  }
++  MdeModulePkg/Universal/ResetSystemRuntimeDxe/ResetSystemRuntimeDxe.inf
++  MdeModulePkg/Universal/Metronome/Metronome.inf
++  PcAtChipsetPkg/PcatRealTimeClockRuntimeDxe/PcatRealTimeClockRuntimeDxe.inf
++  MdeModulePkg/Universal/DriverHealthManagerDxe/DriverHealthManagerDxe.inf
++  MdeModulePkg/Universal/BdsDxe/BdsDxe.inf {
++    <LibraryClasses>
++      XenPlatformLib|OvmfPkg/Library/XenPlatformLib/XenPlatformLib.inf
++  }
++  MdeModulePkg/Logo/LogoDxe.inf
++  MdeModulePkg/Application/UiApp/UiApp.inf {
++    <LibraryClasses>
++      NULL|MdeModulePkg/Library/DeviceManagerUiLib/DeviceManagerUiLib.inf
++      NULL|MdeModulePkg/Library/BootManagerUiLib/BootManagerUiLib.inf
++      NULL|MdeModulePkg/Library/BootMaintenanceManagerUiLib/BootMaintenanceManagerUiLib.inf
++  }
++  MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
++  OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.inf {
++    <LibraryClasses>
++      NULL|OvmfPkg/Library/BlobVerifierLibNull/BlobVerifierLibNull.inf
++  }
++  OvmfPkg/VirtioPciDeviceDxe/VirtioPciDeviceDxe.inf
++  OvmfPkg/Virtio10Dxe/Virtio10.inf
++  OvmfPkg/VirtioBlkDxe/VirtioBlk.inf
++  OvmfPkg/VirtioScsiDxe/VirtioScsi.inf
++  OvmfPkg/VirtioSerialDxe/VirtioSerial.inf
++  MdeModulePkg/Universal/WatchdogTimerDxe/WatchdogTimer.inf
++  MdeModulePkg/Universal/MonotonicCounterRuntimeDxe/MonotonicCounterRuntimeDxe.inf
++  MdeModulePkg/Universal/CapsuleRuntimeDxe/CapsuleRuntimeDxe.inf
++  MdeModulePkg/Universal/Console/ConPlatformDxe/ConPlatformDxe.inf
++  MdeModulePkg/Universal/Console/ConSplitterDxe/ConSplitterDxe.inf
++  MdeModulePkg/Universal/Console/GraphicsConsoleDxe/GraphicsConsoleDxe.inf {
++    <LibraryClasses>
++      PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
++  }
++  MdeModulePkg/Universal/Console/TerminalDxe/TerminalDxe.inf
++  MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf {
++    <LibraryClasses>
++      DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
++      PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
++  }
++  MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
++  MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
++  MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
++  MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
++  FatPkg/EnhancedFatDxe/Fat.inf
++  MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
++  OvmfPkg/VirtioFsDxe/VirtioFsDxe.inf
++  MdeModulePkg/Bus/Scsi/ScsiBusDxe/ScsiBusDxe.inf
++  MdeModulePkg/Bus/Scsi/ScsiDiskDxe/ScsiDiskDxe.inf
++  MdeModulePkg/Bus/Pci/SataControllerDxe/SataControllerDxe.inf
++  MdeModulePkg/Bus/Ata/AtaAtapiPassThru/AtaAtapiPassThru.inf
++  MdeModulePkg/Bus/Ata/AtaBusDxe/AtaBusDxe.inf
++  MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
++  MdeModulePkg/Universal/HiiDatabaseDxe/HiiDatabaseDxe.inf
++  MdeModulePkg/Universal/SetupBrowserDxe/SetupBrowserDxe.inf
++  MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf
++
++  OvmfPkg/QemuVideoDxe/QemuVideoDxe.inf
++  OvmfPkg/QemuRamfbDxe/QemuRamfbDxe.inf
++  OvmfPkg/VirtioGpuDxe/VirtioGpu.inf
++  OvmfPkg/VirtHstiDxe/VirtHstiDxe.inf
++
++  #
++  # ISA Support
++  #
++  OvmfPkg/SioBusDxe/SioBusDxe.inf
++  MdeModulePkg/Bus/Pci/PciSioSerialDxe/PciSioSerialDxe.inf
++  MdeModulePkg/Bus/Isa/Ps2KeyboardDxe/Ps2KeyboardDxe.inf
++
++  #
++  # SMBIOS Support
++  #
++  MdeModulePkg/Universal/SmbiosDxe/SmbiosDxe.inf {
++    <LibraryClasses>
++      NULL|OvmfPkg/Library/SmbiosVersionLib/DetectSmbiosVersionLib.inf
++  }
++  OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
++
++  #
++  # ACPI Support
++  #
++  MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
++  OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf
++  MdeModulePkg/Universal/Acpi/S3SaveStateDxe/S3SaveStateDxe.inf
++  MdeModulePkg/Universal/Acpi/BootScriptExecutorDxe/BootScriptExecutorDxe.inf
++  MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
++
++  #
++  # Hash2 Protocol producer
++  #
++  SecurityPkg/Hash2DxeCrypto/Hash2DxeCrypto.inf
++
++  #
++  # Network Support
++  #
++!include NetworkPkg/NetworkComponents.dsc.inc
++!include OvmfPkg/Include/Dsc/NetworkComponents.dsc.inc
++!include OvmfPkg/Include/Dsc/UsbComponents.dsc.inc
++!include OvmfPkg/Include/Dsc/ShellComponents.dsc.inc
++!include OvmfPkg/Include/Dsc/MorLock.dsc.inc
++!include OvmfPkg/Include/Dsc/OvmfRngComponents.dsc.inc
++!include OvmfPkg/Include/Dsc/OvmfOptHwComponents.dsc.inc
++
++!if $(SECURE_BOOT_ENABLE) == TRUE
++  SecurityPkg/VariableAuthenticated/SecureBootConfigDxe/SecureBootConfigDxe.inf
++  OvmfPkg/EnrollDefaultKeys/EnrollDefaultKeys.inf
++!endif
++
++  OvmfPkg/PlatformDxe/Platform.inf
++  OvmfPkg/IoMmuDxe/IoMmuDxe.inf
++
++!if $(SMM_REQUIRE) == TRUE
++  OvmfPkg/SmmAccess/SmmAccess2Dxe.inf
++  OvmfPkg/SmmControl2Dxe/SmmControl2Dxe.inf
++  OvmfPkg/CpuS3DataDxe/CpuS3DataDxe.inf
++
++  #
++  # SMM Initial Program Load (a DXE_RUNTIME_DRIVER)
++  #
++  MdeModulePkg/Core/PiSmmCore/PiSmmIpl.inf
++
++  #
++  # SMM_CORE
++  #
++  MdeModulePkg/Core/PiSmmCore/PiSmmCore.inf
++
++  #
++  # Privileged drivers (DXE_SMM_DRIVER modules)
++  #
++  OvmfPkg/CpuHotplugSmm/CpuHotplugSmm.inf
++  UefiCpuPkg/CpuIo2Smm/CpuIo2Smm.inf
++  MdeModulePkg/Universal/LockBox/SmmLockBox/SmmLockBox.inf {
++    <LibraryClasses>
++      LockBoxLib|MdeModulePkg/Library/SmmLockBoxLib/SmmLockBoxSmmLib.inf
++  }
++  UefiCpuPkg/PiSmmCpuDxeSmm/PiSmmCpuDxeSmm.inf {
++    <LibraryClasses>
++      SmmCpuPlatformHookLib|OvmfPkg/Library/SmmCpuPlatformHookLibQemu/SmmCpuPlatformHookLibQemu.inf
++      SmmCpuFeaturesLib|OvmfPkg/Library/SmmCpuFeaturesLib/SmmCpuFeaturesLib.inf
++      MmSaveStateLib|UefiCpuPkg/Library/MmSaveStateLib/AmdMmSaveStateLib.inf
++      AmdSysCallLib|UefiCpuPkg/Library/AmdSysCallLibNull/AmdSysCallLibNull.inf
++      SmmCpuSyncLib|UefiCpuPkg/Library/SmmCpuSyncLib/SmmCpuSyncLib.inf
++  }
++  MdeModulePkg/Universal/SmmCommunicationBufferDxe/SmmCommunicationBufferDxe.inf
++
++  #
++  # Variable driver stack (SMM)
++  #
++  OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesSmm.inf {
++    <LibraryClasses>
++    CcExitLib|UefiCpuPkg/Library/CcExitLibNull/CcExitLibNull.inf
++  }
++  MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteSmm.inf
++  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableSmm.inf {
++    <LibraryClasses>
++      NULL|MdeModulePkg/Library/VarCheckUefiLib/VarCheckUefiLib.inf
++      NULL|MdeModulePkg/Library/VarCheckPolicyLib/VarCheckPolicyLib.inf
++  }
++  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableSmmRuntimeDxe.inf
++
++!else
++
++  #
++  # Variable driver stack (non-SMM)
++  #
++  OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesRuntimeDxe.inf
++  OvmfPkg/EmuVariableFvbRuntimeDxe/Fvb.inf {
++    <LibraryClasses>
++      PlatformFvbLib|OvmfPkg/Library/EmuVariableFvbLib/EmuVariableFvbLib.inf
++  }
++  MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteDxe.inf
++  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe.inf {
++    <LibraryClasses>
++      NULL|MdeModulePkg/Library/VarCheckUefiLib/VarCheckUefiLib.inf
++  }
++!endif
++
++  #
++  # TPM support
++  #
++!include OvmfPkg/Include/Dsc/OvmfTpmComponentsDxe.dsc.inc
++
++!if $(LOAD_X64_ON_IA32_ENABLE) == TRUE
++  OvmfPkg/CompatImageLoaderDxe/CompatImageLoaderDxe.inf
++!endif
+diff --git a/OvmfPkg/OvmfPkgIa32.fdf b/OvmfPkg/OvmfPkgIa32.fdf
+new file mode 100644
+index 0000000000..ea693bf4a0
+--- /dev/null
++++ b/OvmfPkg/OvmfPkgIa32.fdf
+@@ -0,0 +1,494 @@
++## @file
++#  Open Virtual Machine Firmware: FDF
++#
++#  Copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
++#  (C) Copyright 2016 Hewlett Packard Enterprise Development LP<BR>
++#
++#  SPDX-License-Identifier: BSD-2-Clause-Patent
++#
++##
++
++################################################################################
++
++[Defines]
++!include OvmfPkg/Include/Fdf/OvmfPkgDefines.fdf.inc
++
++#
++# Build the variable store and the firmware code as one unified flash device
++# image.
++#
++[FD.OVMF]
++BaseAddress   = $(FW_BASE_ADDRESS)
++Size          = $(FW_SIZE)
++ErasePolarity = 1
++BlockSize     = $(BLOCK_SIZE)
++NumBlocks     = $(FW_BLOCKS)
++
++!include OvmfPkg/Include/Fdf/VarStore.fdf.inc
++
++$(VARS_SIZE)|$(FVMAIN_SIZE)
++FV = FVMAIN_COMPACT
++
++$(SECFV_OFFSET)|$(SECFV_SIZE)
++FV = SECFV
++
++#
++# Build the variable store and the firmware code as separate flash device
++# images.
++#
++[FD.OVMF_VARS]
++BaseAddress   = $(FW_BASE_ADDRESS)
++Size          = $(VARS_SIZE)
++ErasePolarity = 1
++BlockSize     = $(BLOCK_SIZE)
++NumBlocks     = $(VARS_BLOCKS)
++
++!include OvmfPkg/Include/Fdf/VarStore.fdf.inc
++
++[FD.OVMF_CODE]
++BaseAddress   = $(CODE_BASE_ADDRESS)
++Size          = $(CODE_SIZE)
++ErasePolarity = 1
++BlockSize     = $(BLOCK_SIZE)
++NumBlocks     = $(CODE_BLOCKS)
++
++0x00000000|$(FVMAIN_SIZE)
++FV = FVMAIN_COMPACT
++
++$(FVMAIN_SIZE)|$(SECFV_SIZE)
++FV = SECFV
++
++################################################################################
++
++[FD.MEMFD]
++BaseAddress   = $(MEMFD_BASE_ADDRESS)
++Size          = 0xF80000
++ErasePolarity = 1
++BlockSize     = 0x10000
++NumBlocks     = 0xF8
++
++0x000000|0x006000
++gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecPageTablesBase|gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecPageTablesSize
++
++0x006000|0x001000
++gUefiOvmfPkgTokenSpaceGuid.PcdOvmfLockBoxStorageBase|gUefiOvmfPkgTokenSpaceGuid.PcdOvmfLockBoxStorageSize
++
++0x007000|0x001000
++gEfiMdePkgTokenSpaceGuid.PcdGuidedExtractHandlerTableAddress|gUefiOvmfPkgTokenSpaceGuid.PcdGuidedExtractHandlerTableSize
++
++0x008000|0x001000
++gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase|gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaSize
++
++0x010000|0x010000
++gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecPeiTempRamBase|gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecPeiTempRamSize
++
++0x020000|0x0E0000
++gUefiOvmfPkgTokenSpaceGuid.PcdOvmfPeiMemFvBase|gUefiOvmfPkgTokenSpaceGuid.PcdOvmfPeiMemFvSize
++FV = PEIFV
++
++0x100000|0xE80000
++gUefiOvmfPkgTokenSpaceGuid.PcdOvmfDxeMemFvBase|gUefiOvmfPkgTokenSpaceGuid.PcdOvmfDxeMemFvSize
++FV = DXEFV
++
++##########################################################################################
++# Set the SEV-ES specific work area PCDs (used for all forms of SEV since the
++# the SEV STATUS MSR is now saved in the work area)
++#
++SET gUefiCpuPkgTokenSpaceGuid.PcdSevEsWorkAreaBase = $(MEMFD_BASE_ADDRESS) +  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase + gUefiOvmfPkgTokenSpaceGuid.PcdOvmfConfidentialComputingWorkAreaHeader
++SET gUefiCpuPkgTokenSpaceGuid.PcdSevEsWorkAreaSize = gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaSize - gUefiOvmfPkgTokenSpaceGuid.PcdOvmfConfidentialComputingWorkAreaHeader
++##########################################################################################
++
++################################################################################
++
++[FV.SECFV]
++FvNameGuid         = 763BED0D-DE9F-48F5-81F1-3E90E1B1A015
++BlockSize          = 0x1000
++FvAlignment        = 16
++ERASE_POLARITY     = 1
++MEMORY_MAPPED      = TRUE
++STICKY_WRITE       = TRUE
++LOCK_CAP           = TRUE
++LOCK_STATUS        = TRUE
++WRITE_DISABLED_CAP = TRUE
++WRITE_ENABLED_CAP  = TRUE
++WRITE_STATUS       = TRUE
++WRITE_LOCK_CAP     = TRUE
++WRITE_LOCK_STATUS  = TRUE
++READ_DISABLED_CAP  = TRUE
++READ_ENABLED_CAP   = TRUE
++READ_STATUS        = TRUE
++READ_LOCK_CAP      = TRUE
++READ_LOCK_STATUS   = TRUE
++
++#
++# SEC Phase modules
++#
++# The code in this FV handles the initial firmware startup, and
++# decompresses the PEI and DXE FVs which handles the rest of the boot sequence.
++#
++INF  OvmfPkg/Sec/SecMain.inf
++
++INF  RuleOverride=RESET_VECTOR OvmfPkg/ResetVector/ResetVector.inf
++
++################################################################################
++[FV.PEIFV]
++FvNameGuid         = 6938079B-B503-4E3D-9D24-B28337A25806
++BlockSize          = 0x10000
++FvAlignment        = 16
++ERASE_POLARITY     = 1
++MEMORY_MAPPED      = TRUE
++STICKY_WRITE       = TRUE
++LOCK_CAP           = TRUE
++LOCK_STATUS        = TRUE
++WRITE_DISABLED_CAP = TRUE
++WRITE_ENABLED_CAP  = TRUE
++WRITE_STATUS       = TRUE
++WRITE_LOCK_CAP     = TRUE
++WRITE_LOCK_STATUS  = TRUE
++READ_DISABLED_CAP  = TRUE
++READ_ENABLED_CAP   = TRUE
++READ_STATUS        = TRUE
++READ_LOCK_CAP      = TRUE
++READ_LOCK_STATUS   = TRUE
++
++APRIORI PEI {
++  INF  MdeModulePkg/Universal/PCD/Pei/Pcd.inf
++}
++
++#
++#  PEI Phase modules
++#
++INF  MdeModulePkg/Core/Pei/PeiMain.inf
++INF  MdeModulePkg/Universal/PCD/Pei/Pcd.inf
++INF  MdeModulePkg/Universal/ReportStatusCodeRouter/Pei/ReportStatusCodeRouterPei.inf
++INF  MdeModulePkg/Universal/StatusCodeHandler/Pei/StatusCodeHandlerPei.inf
++INF  OvmfPkg/PlatformPei/PlatformPei.inf
++INF  MdeModulePkg/Core/DxeIplPeim/DxeIpl.inf
++INF  UefiCpuPkg/Universal/Acpi/S3Resume2Pei/S3Resume2Pei.inf
++!if $(SMM_REQUIRE) == TRUE
++INF  MdeModulePkg/Universal/FaultTolerantWritePei/FaultTolerantWritePei.inf
++INF  MdeModulePkg/Universal/Variable/Pei/VariablePei.inf
++INF  OvmfPkg/SmmAccess/SmmAccessPei.inf
++!endif
++INF  UefiCpuPkg/CpuMpPei/CpuMpPei.inf
++
++!include OvmfPkg/Include/Fdf/OvmfTpmPei.fdf.inc
++
++################################################################################
++
++[FV.DXEFV]
++FvForceRebase      = FALSE
++FvNameGuid         = 7CB8BDC9-F8EB-4F34-AAEA-3EE4AF6516A1
++BlockSize          = 0x10000
++FvAlignment        = 16
++ERASE_POLARITY     = 1
++MEMORY_MAPPED      = TRUE
++STICKY_WRITE       = TRUE
++LOCK_CAP           = TRUE
++LOCK_STATUS        = TRUE
++WRITE_DISABLED_CAP = TRUE
++WRITE_ENABLED_CAP  = TRUE
++WRITE_STATUS       = TRUE
++WRITE_LOCK_CAP     = TRUE
++WRITE_LOCK_STATUS  = TRUE
++READ_DISABLED_CAP  = TRUE
++READ_ENABLED_CAP   = TRUE
++READ_STATUS        = TRUE
++READ_LOCK_CAP      = TRUE
++READ_LOCK_STATUS   = TRUE
++
++APRIORI DXE {
++  INF  MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
++  INF  MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
++!if $(SMM_REQUIRE) == FALSE
++  INF  OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesRuntimeDxe.inf
++!endif
++}
++
++#
++# DXE Phase modules
++#
++INF  MdeModulePkg/Core/Dxe/DxeMain.inf
++
++INF  MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe.inf
++INF  MdeModulePkg/Universal/StatusCodeHandler/RuntimeDxe/StatusCodeHandlerRuntimeDxe.inf
++INF  MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
++
++INF  MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
++INF  MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe.inf
++INF  MdeModulePkg/Universal/EbcDxe/EbcDxe.inf
++INF  UefiCpuPkg/CpuIo2Dxe/CpuIo2Dxe.inf
++INF  UefiCpuPkg/CpuDxe/CpuDxe.inf
++INF  OvmfPkg/LocalApicTimerDxe/LocalApicTimerDxe.inf
++INF  OvmfPkg/IncompatiblePciDeviceSupportDxe/IncompatiblePciDeviceSupport.inf
++INF  OvmfPkg/PciHotPlugInitDxe/PciHotPlugInit.inf
++INF  MdeModulePkg/Bus/Pci/PciHostBridgeDxe/PciHostBridgeDxe.inf
++INF  MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe.inf
++INF  MdeModulePkg/Universal/ResetSystemRuntimeDxe/ResetSystemRuntimeDxe.inf
++INF  MdeModulePkg/Universal/Metronome/Metronome.inf
++INF  PcAtChipsetPkg/PcatRealTimeClockRuntimeDxe/PcatRealTimeClockRuntimeDxe.inf
++
++INF  OvmfPkg/VirtioPciDeviceDxe/VirtioPciDeviceDxe.inf
++INF  OvmfPkg/Virtio10Dxe/Virtio10.inf
++INF  OvmfPkg/VirtioBlkDxe/VirtioBlk.inf
++INF  OvmfPkg/VirtioScsiDxe/VirtioScsi.inf
++INF  OvmfPkg/VirtioSerialDxe/VirtioSerial.inf
++
++!if $(SECURE_BOOT_ENABLE) == TRUE
++  INF  SecurityPkg/VariableAuthenticated/SecureBootConfigDxe/SecureBootConfigDxe.inf
++!endif
++
++INF  MdeModulePkg/Universal/WatchdogTimerDxe/WatchdogTimer.inf
++INF  MdeModulePkg/Universal/MonotonicCounterRuntimeDxe/MonotonicCounterRuntimeDxe.inf
++INF  MdeModulePkg/Universal/CapsuleRuntimeDxe/CapsuleRuntimeDxe.inf
++INF  MdeModulePkg/Universal/Console/ConPlatformDxe/ConPlatformDxe.inf
++INF  MdeModulePkg/Universal/Console/ConSplitterDxe/ConSplitterDxe.inf
++INF  MdeModulePkg/Universal/Console/GraphicsConsoleDxe/GraphicsConsoleDxe.inf
++INF  MdeModulePkg/Universal/Console/TerminalDxe/TerminalDxe.inf
++INF  MdeModulePkg/Universal/DriverHealthManagerDxe/DriverHealthManagerDxe.inf
++INF  MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
++INF  MdeModulePkg/Application/UiApp/UiApp.inf
++INF  MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
++INF  OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.inf
++INF  MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
++INF  MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
++INF  MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
++INF  MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
++INF  MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
++INF  MdeModulePkg/Bus/Scsi/ScsiBusDxe/ScsiBusDxe.inf
++INF  MdeModulePkg/Bus/Scsi/ScsiDiskDxe/ScsiDiskDxe.inf
++INF  MdeModulePkg/Bus/Pci/SataControllerDxe/SataControllerDxe.inf
++INF  MdeModulePkg/Bus/Ata/AtaAtapiPassThru/AtaAtapiPassThru.inf
++INF  MdeModulePkg/Bus/Ata/AtaBusDxe/AtaBusDxe.inf
++INF  MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
++INF  MdeModulePkg/Universal/HiiDatabaseDxe/HiiDatabaseDxe.inf
++INF  MdeModulePkg/Universal/SetupBrowserDxe/SetupBrowserDxe.inf
++INF  MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf
++
++INF  OvmfPkg/SioBusDxe/SioBusDxe.inf
++!if $(SOURCE_DEBUG_ENABLE) == FALSE
++INF  MdeModulePkg/Bus/Pci/PciSioSerialDxe/PciSioSerialDxe.inf
++!endif
++INF  MdeModulePkg/Bus/Isa/Ps2KeyboardDxe/Ps2KeyboardDxe.inf
++
++INF  MdeModulePkg/Universal/SmbiosDxe/SmbiosDxe.inf
++INF  OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
++
++INF  MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
++INF  OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf
++INF  MdeModulePkg/Universal/Acpi/S3SaveStateDxe/S3SaveStateDxe.inf
++INF  MdeModulePkg/Universal/Acpi/BootScriptExecutorDxe/BootScriptExecutorDxe.inf
++INF  MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
++
++INF  FatPkg/EnhancedFatDxe/Fat.inf
++INF  MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
++INF  OvmfPkg/VirtioFsDxe/VirtioFsDxe.inf
++
++INF MdeModulePkg/Logo/LogoDxe.inf
++
++#
++# Hash2 Protocol producer
++#
++INF SecurityPkg/Hash2DxeCrypto/Hash2DxeCrypto.inf
++
++#
++# Network modules
++#
++!include NetworkPkg/Network.fdf.inc
++  INF  OvmfPkg/VirtioNetDxe/VirtioNet.inf
++
++#
++# Usb Support
++#
++INF  MdeModulePkg/Bus/Pci/UhciDxe/UhciDxe.inf
++INF  MdeModulePkg/Bus/Pci/EhciDxe/EhciDxe.inf
++INF  MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe.inf
++INF  MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe.inf
++INF  MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
++INF  MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
++
++INF  OvmfPkg/QemuVideoDxe/QemuVideoDxe.inf
++INF  OvmfPkg/QemuRamfbDxe/QemuRamfbDxe.inf
++INF  OvmfPkg/VirtioGpuDxe/VirtioGpu.inf
++INF  OvmfPkg/PlatformDxe/Platform.inf
++INF  OvmfPkg/IoMmuDxe/IoMmuDxe.inf
++INF  OvmfPkg/VirtHstiDxe/VirtHstiDxe.inf
++
++!if $(SMM_REQUIRE) == TRUE
++INF  OvmfPkg/SmmAccess/SmmAccess2Dxe.inf
++INF  OvmfPkg/SmmControl2Dxe/SmmControl2Dxe.inf
++INF  OvmfPkg/CpuS3DataDxe/CpuS3DataDxe.inf
++INF  MdeModulePkg/Core/PiSmmCore/PiSmmIpl.inf
++INF  MdeModulePkg/Core/PiSmmCore/PiSmmCore.inf
++INF  OvmfPkg/CpuHotplugSmm/CpuHotplugSmm.inf
++INF  UefiCpuPkg/CpuIo2Smm/CpuIo2Smm.inf
++INF  MdeModulePkg/Universal/LockBox/SmmLockBox/SmmLockBox.inf
++INF  UefiCpuPkg/PiSmmCpuDxeSmm/PiSmmCpuDxeSmm.inf
++INF  MdeModulePkg/Universal/SmmCommunicationBufferDxe/SmmCommunicationBufferDxe.inf
++
++#
++# Variable driver stack (SMM)
++#
++INF  OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesSmm.inf
++INF  MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteSmm.inf
++INF  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableSmm.inf
++INF  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableSmmRuntimeDxe.inf
++
++!else
++
++#
++# Variable driver stack (non-SMM)
++#
++INF  OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesRuntimeDxe.inf
++INF  OvmfPkg/EmuVariableFvbRuntimeDxe/Fvb.inf
++INF  MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteDxe.inf
++INF  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe.inf
++!endif
++
++#
++# TPM support
++#
++!include OvmfPkg/Include/Fdf/OvmfTpmDxe.fdf.inc
++
++!include OvmfPkg/Include/Fdf/ShellDxe.fdf.inc
++!include OvmfPkg/Include/Fdf/MorLock.fdf.inc
++!include OvmfPkg/Include/Fdf/OvmfRngDxe.fdf.inc
++!include OvmfPkg/Include/Fdf/OvmfOptHw.fdf.inc
++
++!if $(LOAD_X64_ON_IA32_ENABLE) == TRUE
++INF  OvmfPkg/CompatImageLoaderDxe/CompatImageLoaderDxe.inf
++!endif
++
++################################################################################
++
++[FV.FVMAIN_COMPACT]
++FvNameGuid         = 48DB5E17-707C-472D-91CD-1613E7EF51B0
++FvAlignment        = 16
++ERASE_POLARITY     = 1
++MEMORY_MAPPED      = TRUE
++STICKY_WRITE       = TRUE
++LOCK_CAP           = TRUE
++LOCK_STATUS        = TRUE
++WRITE_DISABLED_CAP = TRUE
++WRITE_ENABLED_CAP  = TRUE
++WRITE_STATUS       = TRUE
++WRITE_LOCK_CAP     = TRUE
++WRITE_LOCK_STATUS  = TRUE
++READ_DISABLED_CAP  = TRUE
++READ_ENABLED_CAP   = TRUE
++READ_STATUS        = TRUE
++READ_LOCK_CAP      = TRUE
++READ_LOCK_STATUS   = TRUE
++
++FILE FV_IMAGE = 9E21FD93-9C72-4c15-8C4B-E77F1DB2D792 {
++   SECTION GUIDED EE4E5898-3914-4259-9D6E-DC7BD79403CF PROCESSING_REQUIRED = TRUE {
++     #
++     # These firmware volumes will have files placed in them uncompressed,
++     # and then both firmware volumes will be compressed in a single
++     # compression operation in order to achieve better overall compression.
++     #
++     SECTION FV_IMAGE = PEIFV
++     SECTION FV_IMAGE = DXEFV
++   }
++ }
++
++!include OvmfPkg/Include/Fdf/FvmainCompactScratchEnd.fdf.inc
++
++################################################################################
++
++[Rule.Common.SEC]
++  FILE SEC = $(NAMED_GUID) {
++    PE32     PE32           $(INF_OUTPUT)/$(MODULE_NAME).efi
++    UI       STRING ="$(MODULE_NAME)" Optional
++    VERSION  STRING ="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++  }
++
++[Rule.Common.PEI_CORE]
++  FILE PEI_CORE = $(NAMED_GUID) {
++    PE32     PE32   Align=Auto    $(INF_OUTPUT)/$(MODULE_NAME).efi
++    UI       STRING ="$(MODULE_NAME)" Optional
++    VERSION  STRING ="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++  }
++
++[Rule.Common.PEIM]
++  FILE PEIM = $(NAMED_GUID) {
++     PEI_DEPEX PEI_DEPEX Optional        $(INF_OUTPUT)/$(MODULE_NAME).depex
++     PE32      PE32   Align=Auto         $(INF_OUTPUT)/$(MODULE_NAME).efi
++     UI       STRING="$(MODULE_NAME)" Optional
++     VERSION  STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++  }
++
++[Rule.Common.DXE_CORE]
++  FILE DXE_CORE = $(NAMED_GUID) {
++    PE32     PE32           $(INF_OUTPUT)/$(MODULE_NAME).efi
++    UI       STRING="$(MODULE_NAME)" Optional
++    VERSION  STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++  }
++
++[Rule.Common.DXE_DRIVER]
++  FILE DRIVER = $(NAMED_GUID) {
++    DXE_DEPEX    DXE_DEPEX Optional      $(INF_OUTPUT)/$(MODULE_NAME).depex
++    PE32     PE32                    $(INF_OUTPUT)/$(MODULE_NAME).efi
++    UI       STRING="$(MODULE_NAME)" Optional
++    VERSION  STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++    RAW ACPI  Optional               |.acpi
++    RAW ASL   Optional               |.aml
++  }
++
++[Rule.Common.DXE_RUNTIME_DRIVER]
++  FILE DRIVER = $(NAMED_GUID) {
++    DXE_DEPEX    DXE_DEPEX Optional      $(INF_OUTPUT)/$(MODULE_NAME).depex
++    PE32     PE32                    $(INF_OUTPUT)/$(MODULE_NAME).efi
++    UI       STRING="$(MODULE_NAME)" Optional
++    VERSION  STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++  }
++
++[Rule.Common.UEFI_DRIVER]
++  FILE DRIVER = $(NAMED_GUID) {
++    DXE_DEPEX    DXE_DEPEX Optional      $(INF_OUTPUT)/$(MODULE_NAME).depex
++    PE32     PE32                    $(INF_OUTPUT)/$(MODULE_NAME).efi
++    UI       STRING="$(MODULE_NAME)" Optional
++    VERSION  STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++  }
++
++[Rule.Common.UEFI_DRIVER.BINARY]
++  FILE DRIVER = $(NAMED_GUID) {
++    DXE_DEPEX DXE_DEPEX Optional      |.depex
++    PE32      PE32                    |.efi
++    UI        STRING="$(MODULE_NAME)" Optional
++    VERSION   STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++  }
++
++[Rule.Common.UEFI_APPLICATION]
++  FILE APPLICATION = $(NAMED_GUID) {
++    PE32     PE32                    $(INF_OUTPUT)/$(MODULE_NAME).efi
++    UI       STRING="$(MODULE_NAME)" Optional
++    VERSION  STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++  }
++
++[Rule.Common.UEFI_APPLICATION.BINARY]
++  FILE APPLICATION = $(NAMED_GUID) {
++    PE32      PE32                    |.efi
++    UI        STRING="$(MODULE_NAME)" Optional
++    VERSION   STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++  }
++
++[Rule.Common.USER_DEFINED.RESET_VECTOR]
++  FILE RAW = $(NAMED_GUID) {
++    RAW BIN   Align = 16   |.bin
++  }
++
++[Rule.Common.SMM_CORE]
++  FILE SMM_CORE = $(NAMED_GUID) {
++    PE32     PE32           $(INF_OUTPUT)/$(MODULE_NAME).efi
++    UI       STRING="$(MODULE_NAME)" Optional
++    VERSION  STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++  }
++
++[Rule.Common.DXE_SMM_DRIVER]
++  FILE SMM = $(NAMED_GUID) {
++    SMM_DEPEX    SMM_DEPEX Optional      $(INF_OUTPUT)/$(MODULE_NAME).depex
++    PE32     PE32                    $(INF_OUTPUT)/$(MODULE_NAME).efi
++    UI       STRING="$(MODULE_NAME)" Optional
++    VERSION  STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
++  }
+diff --git a/OvmfPkg/PlatformCI/.azurepipelines/Ubuntu-GCC.yml b/OvmfPkg/PlatformCI/.azurepipelines/Ubuntu-GCC.yml
+index fde3927ded..e6b4223f9f 100644
+--- a/OvmfPkg/PlatformCI/.azurepipelines/Ubuntu-GCC.yml
++++ b/OvmfPkg/PlatformCI/.azurepipelines/Ubuntu-GCC.yml
+@@ -37,6 +37,28 @@ jobs:
+     #Use matrix to speed up the build process
+     strategy:
+         matrix:
++          OVMF_IA32_DEBUG:
++            Build.File: "$(package)/PlatformCI/PlatformBuild.py"
++            Build.Arch: "IA32"
++            Build.Flags: ""
++            Build.Target: "DEBUG"
++            Run.Flags: $(run_flags)
++            Run: $(should_run)
++          OVMF_IA32_RELEASE:
++            Build.File: "$(package)/PlatformCI/PlatformBuild.py"
++            Build.Arch: "IA32"
++            Build.Flags: ""
++            Build.Target: "RELEASE"
++            Run.Flags: $(run_flags)
++            Run: $(should_run)
++          OVMF_IA32_NOOPT:
++            Build.File: "$(package)/PlatformCI/PlatformBuild.py"
++            Build.Arch: "IA32"
++            Build.Flags: ""
++            Build.Target: "NOOPT"
++            Run.Flags: $(run_flags)
++            Run: $(should_run)
++
+           OVMF_X64_DEBUG:
+             Build.File: "$(package)/PlatformCI/PlatformBuild.py"
+             Build.Arch: "X64"
+diff --git a/OvmfPkg/PlatformCI/.azurepipelines/Windows-VS.yml b/OvmfPkg/PlatformCI/.azurepipelines/Windows-VS.yml
+index 15415d3c17..7660541a34 100644
+--- a/OvmfPkg/PlatformCI/.azurepipelines/Windows-VS.yml
++++ b/OvmfPkg/PlatformCI/.azurepipelines/Windows-VS.yml
+@@ -37,6 +37,28 @@ jobs:
+     #Use matrix to speed up the build process
+     strategy:
+         matrix:
++          OVMF_IA32_DEBUG:
++            Build.File: "$(package)/PlatformCI/PlatformBuild.py"
++            Build.Arch: "IA32"
++            Build.Flags: ""
++            Build.Target: "DEBUG"
++            Run.Flags: $(run_flags)
++            Run: $(should_run)
++          OVMF_IA32_RELEASE:
++            Build.File: "$(package)/PlatformCI/PlatformBuild.py"
++            Build.Arch: "IA32"
++            Build.Flags: ""
++            Build.Target: "RELEASE"
++            Run.Flags: $(run_flags)
++            Run: $(should_run)
++          OVMF_IA32_NOOPT:
++            Build.File: "$(package)/PlatformCI/PlatformBuild.py"
++            Build.Arch: "IA32"
++            Build.Flags: ""
++            Build.Target: "NOOPT"
++            Run.Flags: $(run_flags)
++            Run: $(should_run)
++
+           OVMF_X64_DEBUG:
+             Build.File: "$(package)/PlatformCI/PlatformBuild.py"
+             Build.Arch: "X64"
+diff --git a/OvmfPkg/PlatformCI/PlatformBuild.py b/OvmfPkg/PlatformCI/PlatformBuild.py
+index ea9cb4d8ca..6c541cdea4 100644
+--- a/OvmfPkg/PlatformCI/PlatformBuild.py
++++ b/OvmfPkg/PlatformCI/PlatformBuild.py
+@@ -32,9 +32,9 @@ class CommonPlatform():
+         ArchCsv: csv string containing all architectures to build
+         '''
+         dsc = "OvmfPkg"
+-        if ArchCsv.upper() == "IA32,X64":
+-            dsc += "Ia32X64"
+-        else:
++        if "IA32" in ArchCsv.upper().split(","):
++            dsc += "Ia32"
++        if "X64" in ArchCsv.upper().split(","):
+             dsc += "X64"
+         dsc += ".dsc"
+         return dsc
+diff --git a/OvmfPkg/PlatformCI/PlatformBuildLib.py b/OvmfPkg/PlatformCI/PlatformBuildLib.py
+index 6aec9af3fa..4398ac7df2 100644
+--- a/OvmfPkg/PlatformCI/PlatformBuildLib.py
++++ b/OvmfPkg/PlatformCI/PlatformBuildLib.py
+@@ -122,10 +122,10 @@ class PlatformBuilder( UefiBuilder, BuildSettingsManager):
+ 
+     def AddCommandLineOptions(self, parserObj):
+         ''' Add command line options to the argparser '''
+-        parserObj.add_argument('-a', "--arch", dest="build_arch", type=str, default="X64",
+-            help="Optional - CSV of architecture to build. "
++        parserObj.add_argument('-a', "--arch", dest="build_arch", type=str, default="IA32,X64",
++            help="Optional - CSV of architecture to build.  IA32 will use IA32 for Pei & Dxe. "
+             "X64 will use X64 for both PEI and DXE.  IA32,X64 will use IA32 for PEI and "
+-            "X64 for DXE. Default is X64")
++            "X64 for DXE. default is IA32,X64")
+ 
+     def RetrieveCommandLineOptions(self, args):
+         '''  Retrieve command line options from the argparser '''
+diff --git a/OvmfPkg/PlatformCI/ReadMe.md b/OvmfPkg/PlatformCI/ReadMe.md
+index 5fc059ec23..afdcb62eda 100644
+--- a/OvmfPkg/PlatformCI/ReadMe.md
++++ b/OvmfPkg/PlatformCI/ReadMe.md
+@@ -11,6 +11,7 @@ supported and are described below.
+ 
+ | Configuration name      | Architectures      | DSC File            |Additional Flags |
+ | :----                   | :-----             | :----               | :----           |
++| IA32                    | IA32               | OvmfPkgIa32.dsc     | None            |
+ | X64                     | X64                | OvmfPkgIa64.dsc     | None            |
+ | IA32 X64                | PEI-IA32 DXE-X64   | OvmfPkgIa32X64.dsc  | None            |
+ | IA32 X64 Full           | PEI-IA32 DXE-X64   | OvmfPkgIa32X64.dsc  | SECURE_BOOT_ENABLE=1 SMM_REQUIRE=1 TPM1_ENABLE=1 TPM2_ENABLE=1 NETWORK_TLS_ENABLE=1 NETWORK_IP6_ENABLE=1 NETWORK_HTTP_BOOT_ENABLE=1 |
+@@ -79,6 +80,12 @@ the generic set of edk2
+     ```
+ 
+ 7. Compile Firmware
++    - To build IA32
++
++    ``` bash
++    stuart_build -c OvmfPkg/PlatformCI/PlatformBuild.py -a IA32 TOOL_CHAIN_TAG=<TOOL_CHAIN_TAG>
++    ```
++
+     - To build X64
+ 
+     ``` bash
+diff --git a/OvmfPkg/PlatformPei/MemDetect.c b/OvmfPkg/PlatformPei/MemDetect.c
+index c8d0ecaf1c..19137df7fb 100644
+--- a/OvmfPkg/PlatformPei/MemDetect.c
++++ b/OvmfPkg/PlatformPei/MemDetect.c
+@@ -126,6 +126,18 @@ AddressWidthInitialization (
+ 
+   PlatformAddressWidthInitialization (PlatformInfoHob);
+ 
++  //
++  // If DXE is 32-bit, then we're done; PciBusDxe will degrade 64-bit MMIO
++  // resources to 32-bit anyway. See DegradeResource() in
++  // "PciResourceSupport.c".
++  //
++ #ifdef MDE_CPU_IA32
++  if (!FeaturePcdGet (PcdDxeIplSwitchToLongMode)) {
++    return;
++  }
++
++ #endif
++
+   if (PlatformInfoHob->PcdPciMmio64Size == 0) {
+     if (PlatformInfoHob->BootMode != BOOT_ON_S3_RESUME) {
+       DEBUG ((
+@@ -182,6 +194,16 @@ GetPeiMemoryCap (
+   UINT64   ApStacks;
+   UINT64   MemoryCap;
+ 
++  //
++  // If DXE is 32-bit, then just return the traditional 64 MB cap.
++  //
++ #ifdef MDE_CPU_IA32
++  if (!FeaturePcdGet (PcdDxeIplSwitchToLongMode)) {
++    return SIZE_64MB;
++  }
++
++ #endif
++
+   //
+   // Dependent on physical address width, PEI memory allocations can be
+   // dominated by the page tables built for 64-bit DXE. So we key the cap off
+diff --git a/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesRuntimeDxe.inf b/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesRuntimeDxe.inf
+index eab13e6e46..f471704789 100644
+--- a/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesRuntimeDxe.inf
++++ b/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesRuntimeDxe.inf
+@@ -23,7 +23,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesSmm.inf b/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesSmm.inf
+index ab8b843631..41926914c8 100644
+--- a/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesSmm.inf
++++ b/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesSmm.inf
+@@ -25,7 +25,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesStandaloneMm.inf b/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesStandaloneMm.inf
+index c782b6056e..f8d36340a8 100644
+--- a/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesStandaloneMm.inf
++++ b/OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesStandaloneMm.inf
+@@ -26,7 +26,7 @@
+ # The following information is for reference only and not required by the build
+ # tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/QemuVideoDxe/QemuVideoDxe.inf b/OvmfPkg/QemuVideoDxe/QemuVideoDxe.inf
+index 9bca56ec46..ad911c7e81 100644
+--- a/OvmfPkg/QemuVideoDxe/QemuVideoDxe.inf
++++ b/OvmfPkg/QemuVideoDxe/QemuVideoDxe.inf
+@@ -20,7 +20,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ #  DRIVER_BINDING                =  gQemuVideoDriverBinding
+ #  COMPONENT_NAME                =  gQemuVideoComponentName
+diff --git a/OvmfPkg/README b/OvmfPkg/README
+index 1dbcaad1ad..cdae8bfe4d 100644
+--- a/OvmfPkg/README
++++ b/OvmfPkg/README
+@@ -10,7 +10,7 @@ http://www.tianocore.org/ovmf/
+ === STATUS ===
+ 
+ Current capabilities:
+-* X64 architecture (optionally with IA32 SEC/PEI)
++* IA32 and X64 architectures
+ * QEMU (version 1.7.1 or later, with 1.7 or later machine types)
+   - Video, keyboard, IDE, CD-ROM, serial
+   - Runs UEFI shell
+@@ -36,11 +36,13 @@ Pre-requisites:
+ 
+ Update Conf/target.txt ACTIVE_PLATFORM for OVMF:
+                              PEI arch   DXE arch   UEFI interfaces
++* OvmfPkg/OvmfPkgIa32.dsc      IA32       IA32           IA32
+ * OvmfPkg/OvmfPkgIa32X64.dsc   IA32       X64            X64
+ * OvmfPkg/OvmfPkgX64.dsc       X64        X64            X64
+ 
+ Update Conf/target.txt TARGET_ARCH based on the .dsc file:
+                              TARGET_ARCH
++* OvmfPkg/OvmfPkgIa32.dsc     IA32
+ * OvmfPkg/OvmfPkgIa32X64.dsc  IA32 X64
+ * OvmfPkg/OvmfPkgX64.dsc      X64
+ 
+@@ -63,7 +65,7 @@ More OVMF-specific build information can be found at:
+ === RUNNING OVMF on QEMU ===
+ 
+ * Be sure to use qemu-system-x86_64, if you are using an X64 firmware.
+-  (qemu-system-x86_64 works for the IA32 SEC/PEI as well, of course.)
++  (qemu-system-x86_64 works for the IA32 firmware as well, of course.)
+ * Use OVMF for QEMU firmware (3 options available)
+   - Option 1: Use QEMU -pflash parameter
+     * QEMU/OVMF will use emulated flash, and fully support UEFI variables
+@@ -117,6 +119,9 @@ $ OvmfPkg/build.sh -a X64 qemu
+ And to run a 64-bit UEFI bootable ISO image:
+ $ OvmfPkg/build.sh -a X64 qemu -cdrom /path/to/disk-image.iso
+ 
++To build a 32-bit OVMF without debug messages using GCC 4.8:
++$ OvmfPkg/build.sh -a IA32 -b RELEASE -t GCC48
++
+ === Secure Boot ===
+ 
+ Secure Boot is a security feature that ensures only trusted and digitally
+@@ -225,6 +230,7 @@ initialization and runtime phases are distinct from Traditional MM.
+ Due to the nature of Standalone MM, there are some limitations, requirements and
+ considerations when using it in OVMF:
+ 
++* Standalone MM is only supported in X64 mode and is not available in IA32 mode.
+ * The Standalone MM driver must be built with `-D STANDALONE_MM_ENABLE` flag.
+ * For X64, Standalone MM does not currently support S3 resume or LockBox
+   functionality. While LockBox functionality could be supported in the future
+@@ -287,6 +293,9 @@ longer.)
+     - Unzip "23_5_2.zip" into a separate directory.
+     - Copy the "APPS/EFI/EFIx64/E3522X2.EFI" driver binary to
+       "Intel3.5/EFIX64/E3522X2.EFI" in your WORKSPACE.
++    - Intel have stopped distributing an IA32 driver binary (which used to
++      match the filename pattern "E35??E2.EFI"), thus this method will only
++      work for the IA32X64 and X64 builds of OVMF.
+ 
+   - Include the driver in OVMF during the build:
+     - Add "-D E1000_ENABLE" to your build command (only when building
+diff --git a/OvmfPkg/RiscVVirt/Feature/Capsule/Library/FmpDeviceLib/FmpDeviceLib.inf b/OvmfPkg/RiscVVirt/Feature/Capsule/Library/FmpDeviceLib/FmpDeviceLib.inf
+index 5bc91105e3..abdf5d5d6d 100644
+--- a/OvmfPkg/RiscVVirt/Feature/Capsule/Library/FmpDeviceLib/FmpDeviceLib.inf
++++ b/OvmfPkg/RiscVVirt/Feature/Capsule/Library/FmpDeviceLib/FmpDeviceLib.inf
+@@ -17,6 +17,12 @@
+   VERSION_STRING  = 1.0
+   LIBRARY_CLASS   = FmpDeviceLib|DXE_DRIVER UEFI_DRIVER
+ 
++#
++# The following information is for reference only and not required by the build tools.
++#
++#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64 RISCV64
++#
++
+ [Sources]
+   FmpDeviceLib.c
+ 
+diff --git a/OvmfPkg/SioBusDxe/SioBusDxe.inf b/OvmfPkg/SioBusDxe/SioBusDxe.inf
+index 0a6fe52d66..2f2dc0bf70 100644
+--- a/OvmfPkg/SioBusDxe/SioBusDxe.inf
++++ b/OvmfPkg/SioBusDxe/SioBusDxe.inf
+@@ -20,7 +20,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe.inf b/OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
+index fa667496f9..52689c96e5 100644
+--- a/OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
++++ b/OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
+@@ -17,6 +17,12 @@
+ 
+   ENTRY_POINT                    = SmbiosTablePublishEntry
+ 
++#
++# The following information is for reference only and not required by the build tools.
++#
++#  VALID_ARCHITECTURES           = IA32 X64 EBC ARM AARCH64
++#
++
+ [Sources]
+   CloudHv.c
+   EntryPoint.c
+diff --git a/OvmfPkg/SmbiosPlatformDxe/XenSmbiosPlatformDxe.inf b/OvmfPkg/SmbiosPlatformDxe/XenSmbiosPlatformDxe.inf
+index f69b8e60bf..5f27601480 100644
+--- a/OvmfPkg/SmbiosPlatformDxe/XenSmbiosPlatformDxe.inf
++++ b/OvmfPkg/SmbiosPlatformDxe/XenSmbiosPlatformDxe.inf
+@@ -21,7 +21,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC AARCH64
++#  VALID_ARCHITECTURES           = IA32 X64 EBC ARM AARCH64
+ #
+ 
+ [Sources]
+@@ -30,7 +30,7 @@
+   Xen.c
+   XenSmbiosPlatformDxe.h
+ 
+-[Sources.X64]
++[Sources.IA32, Sources.X64]
+   X86Xen.c
+ 
+ [Sources.AARCH64]
+@@ -40,7 +40,7 @@
+   MdePkg/MdePkg.dec
+   MdeModulePkg/MdeModulePkg.dec
+ 
+-[Packages.X64]
++[Packages.IA32, Packages.X64]
+   OvmfPkg/OvmfPkg.dec
+ 
+ [LibraryClasses]
+@@ -50,7 +50,7 @@
+   UefiBootServicesTableLib
+   UefiDriverEntryPoint
+ 
+-[LibraryClasses.X64]
++[LibraryClasses.IA32, LibraryClasses.X64]
+   HobLib
+ 
+ [Pcd]
+@@ -61,7 +61,7 @@
+ [Protocols]
+   gEfiSmbiosProtocolGuid                      # PROTOCOL ALWAYS_CONSUMED
+ 
+-[Guids.X64]
++[Guids.IA32, Guids.X64]
+   gEfiXenInfoGuid
+ 
+ [Depex]
+diff --git a/OvmfPkg/SmmAccess/SmmAccess2Dxe.inf b/OvmfPkg/SmmAccess/SmmAccess2Dxe.inf
+index 4b064c0dae..d9f01a13c4 100644
+--- a/OvmfPkg/SmmAccess/SmmAccess2Dxe.inf
++++ b/OvmfPkg/SmmAccess/SmmAccess2Dxe.inf
+@@ -23,7 +23,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/SmmControl2Dxe/SmmControl2Dxe.inf b/OvmfPkg/SmmControl2Dxe/SmmControl2Dxe.inf
+index 9bfa9d7467..c31aee411c 100644
+--- a/OvmfPkg/SmmControl2Dxe/SmmControl2Dxe.inf
++++ b/OvmfPkg/SmmControl2Dxe/SmmControl2Dxe.inf
+@@ -30,7 +30,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64
++#  VALID_ARCHITECTURES           = IA32 X64
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/XenAcpiPlatformDxe/XenAcpiPlatformDxe.inf b/OvmfPkg/XenAcpiPlatformDxe/XenAcpiPlatformDxe.inf
+index 04f1d59e18..be175d290f 100644
+--- a/OvmfPkg/XenAcpiPlatformDxe/XenAcpiPlatformDxe.inf
++++ b/OvmfPkg/XenAcpiPlatformDxe/XenAcpiPlatformDxe.inf
+@@ -18,7 +18,7 @@
+ #
+ # The following information is for reference only and not required by the build tools.
+ #
+-#  VALID_ARCHITECTURES           = X64 EBC
++#  VALID_ARCHITECTURES           = IA32 X64 EBC
+ #
+ 
+ [Sources]
+diff --git a/OvmfPkg/XenPlatformPei/MemDetect.c b/OvmfPkg/XenPlatformPei/MemDetect.c
+index 516f9dc455..e552e7a55e 100644
+--- a/OvmfPkg/XenPlatformPei/MemDetect.c
++++ b/OvmfPkg/XenPlatformPei/MemDetect.c
+@@ -215,6 +215,16 @@ GetPeiMemoryCap (
+   UINT32   PdpEntries;
+   UINTN    TotalPages;
+ 
++  //
++  // If DXE is 32-bit, then just return the traditional 64 MB cap.
++  //
++ #ifdef MDE_CPU_IA32
++  if (!FeaturePcdGet (PcdDxeIplSwitchToLongMode)) {
++    return SIZE_64MB;
++  }
++
++ #endif
++
+   //
+   // Dependent on physical address width, PEI memory allocations can be
+   // dominated by the page tables built for 64-bit DXE. So we key the cap off
+diff --git a/OvmfPkg/build.sh b/OvmfPkg/build.sh
+index ed3ed001b4..f2209e145f 100755
+--- a/OvmfPkg/build.sh
++++ b/OvmfPkg/build.sh
+@@ -141,14 +141,45 @@ do
+   shift
+ done
+ 
+-PROCESSOR=X64
+-Processor=X64
+-BUILD_OPTIONS="$BUILD_OPTIONS -a X64"
+-PLATFORM_BUILD_DIR=Ovmf$Processor
+-BUILD_ROOT_ARCH=X64
++if [[ "$ARCH_IA32" == "yes" && "$ARCH_X64" == "yes" ]]; then
++  PROCESSOR=IA32X64
++  Processor=Ia32X64
++  BUILD_OPTIONS="$BUILD_OPTIONS -a IA32 -a X64"
++  PLATFORM_BUILD_DIR=Ovmf3264
++  BUILD_ROOT_ARCH=X64
++elif [[ "$ARCH_IA32" == "yes" && "$ARCH_X64" == "no" ]]; then
++  PROCESSOR=IA32
++  Processor=Ia32
++  BUILD_OPTIONS="$BUILD_OPTIONS -a IA32"
++  PLATFORM_BUILD_DIR=Ovmf$Processor
++  BUILD_ROOT_ARCH=$PROCESSOR
++else
++  PROCESSOR=X64
++  Processor=X64
++  BUILD_OPTIONS="$BUILD_OPTIONS -a X64"
++  PLATFORM_BUILD_DIR=Ovmf$Processor
++  BUILD_ROOT_ARCH=X64
++fi
+ 
+ case $PROCESSOR in
+-  X64)
++  IA32)
++    if [ -n "$QEMU_COMMAND" ]; then
++      #
++      # The user set the QEMU_COMMAND variable. We'll use it to run QEMU.
++      #
++      :
++    elif  [ -x `which qemu-system-i386` ]; then
++      QEMU_COMMAND=qemu-system-i386
++    elif  [ -x `which qemu-system-x86_64` ]; then
++      QEMU_COMMAND=qemu-system-x86_64
++    elif  [ -x `which qemu` ]; then
++      QEMU_COMMAND=qemu
++    else
++      echo Unable to find QEMU for IA32 architecture!
++      exit 1
++    fi
++    ;;
++  X64|IA32X64)
+     if [ -z "$QEMU_COMMAND" ]; then
+       #
+       # The user didn't set the QEMU_COMMAND variable.
+-- 
+2.55.0
+
