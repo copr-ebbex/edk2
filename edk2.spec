@@ -68,7 +68,7 @@
 
 Name:       edk2
 Version:    %{GITDATE}
-Release:    %autorelease
+Release:    %autorelease -e 1
 Summary:    UEFI firmware for 64-bit virtual machines
 License:    Apache-2.0 AND (BSD-2-Clause OR GPL-2.0-or-later) AND BSD-2-Clause-Patent AND BSD-3-Clause AND BSD-4-Clause AND ISC AND MIT AND LicenseRef-Fedora-Public-Domain
 URL:        http://www.tianocore.org
